@@ -1,4 +1,4 @@
-FROM      ubuntu:18.04
+FROM      ubuntu:18.10
 MAINTAINER Denis Rouzaud <denis@opengis.ch>
 
 LABEL Description="Docker container with QGIS dependencies" Vendor="QGIS.org" Version="1.0"
@@ -35,6 +35,7 @@ RUN  apt-get update \
     libproj-dev \
     libqca-qt5-2-dev \
     libqca-qt5-2-plugins \
+    libqt53dextras5 \
     libqt53drender5 \
     libqt5concurrent5 \
     libqt5opengl5-dev \
@@ -89,7 +90,6 @@ RUN  apt-get update \
     qt5keychain-dev \
     qtbase5-dev \
     qtdeclarative5-dev-tools \
-    qtdeclarative5-qtquick2-plugin \
     qtpositioning5-dev \
     qttools5-dev \
     qttools5-dev-tools \
