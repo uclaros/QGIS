@@ -16,8 +16,10 @@ ENV LANG=C.UTF-8
 
 COPY . /usr/src/QGIS
 
+WORKDIR /tmp
+ENV CCACHE_TEMPDIR=/tmp
 ENV CCACHE_DIR=/usr/src/QGIS/.ccache
-RUN ccache -M 1G
+RUN ccache -M 2G
 RUN ccache -s
 
 WORKDIR /usr/src/QGIS/build
@@ -25,7 +27,7 @@ WORKDIR /usr/src/QGIS/build
 RUN cmake \
   -GNinja \
   -DUSE_CCACHE=OFF \
-  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
   -DCMAKE_INSTALL_PREFIX=/usr \
   -DWITH_DESKTOP=ON \
   -DWITH_SERVER=ON \
