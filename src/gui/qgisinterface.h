@@ -518,6 +518,12 @@ class GUI_EXPORT QgisInterface : public QObject
     virtual QAction *actionHideDeselectedLayers() = 0;
     virtual QAction *actionShowSelectedLayers() = 0;
 
+    /**
+     * Returns the Toggle Selected Layers action.
+     * \since QGIS 3.14
+     */
+    virtual QAction *actionToggleSelectedLayers() = 0;
+
     // Plugin menu actions
     virtual QAction *actionManagePlugins() = 0;
     virtual QAction *actionPluginListSeparator() = 0;

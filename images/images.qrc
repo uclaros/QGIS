@@ -411,6 +411,7 @@
         <file>themes/default/mActionSum.svg</file>
         <file>themes/default/mActionTextAnnotation.svg</file>
         <file>themes/default/mActionToggleEditing.svg</file>
+        <file>themes/default/mActionToggleSelectedLayers.svg</file>
         <file>themes/default/mActionTouch.svg</file>
         <file>themes/default/mActionTouch2.png</file>
         <file>themes/default/mActionTracing.svg</file>

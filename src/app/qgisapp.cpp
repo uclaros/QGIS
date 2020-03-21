@@ -2650,6 +2650,7 @@ void QgisApp::createActions()
   connect( mActionHideAllLayers, &QAction::triggered, this, &QgisApp::hideAllLayers );
   connect( mActionShowSelectedLayers, &QAction::triggered, this, &QgisApp::showSelectedLayers );
   connect( mActionHideSelectedLayers, &QAction::triggered, this, &QgisApp::hideSelectedLayers );
+  connect( mActionToggleSelectedLayers, &QAction::triggered, this, &QgisApp::toggleSelectedLayers );
   connect( mActionHideDeselectedLayers, &QAction::triggered, this, &QgisApp::hideDeselectedLayers );
 
   // Plugin Menu Items
@@ -3828,6 +3829,7 @@ void QgisApp::setTheme( const QString &themeName )
   mActionHideSelectedLayers->setIcon( QgsApplication::getThemeIcon( QStringLiteral( "/mActionHideSelectedLayers.svg" ) ) );
   mActionHideDeselectedLayers->setIcon( QgsApplication::getThemeIcon( QStringLiteral( "/mActionHideDeselectedLayers.svg" ) ) );
   mActionShowSelectedLayers->setIcon( QgsApplication::getThemeIcon( QStringLiteral( "/mActionShowSelectedLayers.svg" ) ) );
+  mActionToggleSelectedLayers->setIcon( QgsApplication::getThemeIcon( QStringLiteral( "/mActionToggleSelectedLayers.svg" ) ) );
   mActionRemoveAllFromOverview->setIcon( QgsApplication::getThemeIcon( QStringLiteral( "/mActionRemoveAllFromOverview.svg" ) ) );
   mActionToggleFullScreen->setIcon( QgsApplication::getThemeIcon( QStringLiteral( "/mActionToggleFullScreen.png" ) ) );
   mActionProjectProperties->setIcon( QgsApplication::getThemeIcon( QStringLiteral( "/mActionProjectProperties.png" ) ) );
@@ -7584,6 +7586,16 @@ void QgisApp::showSelectedLayers()
   }
 }
 
+void QgisApp::toggleSelectedLayers()
+{
+  QgsDebugMsg( QStringLiteral( "toggle selected layers!" ) );
+
+  const auto constSelectedNodes = mLayerTreeView->selectedNodes();
+  for ( QgsLayerTreeNode *node : constSelectedNodes )
+  {
+    node->setItemVisibilityChecked( !node->itemVisibilityChecked() );
+  }
+}
 
 void QgisApp::zoomIn()
 {

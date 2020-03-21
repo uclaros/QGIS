@@ -686,6 +686,7 @@ QAction *QgisAppInterface::actionShowAllLayers() { return qgis->actionShowAllLay
 QAction *QgisAppInterface::actionHideSelectedLayers() { return qgis->actionHideSelectedLayers(); }
 QAction *QgisAppInterface::actionHideDeselectedLayers() { return qgis->actionHideDeselectedLayers(); }
 QAction *QgisAppInterface::actionShowSelectedLayers() { return qgis->actionShowSelectedLayers(); }
+QAction *QgisAppInterface::actionToggleSelectedLayers() { return qgis->actionToggleSelectedLayers(); }
 
 QAction *QgisAppInterface::actionManagePlugins() { return qgis->actionManagePlugins(); }
 QAction *QgisAppInterface::actionPluginListSeparator() { return qgis->actionPluginListSeparator(); }

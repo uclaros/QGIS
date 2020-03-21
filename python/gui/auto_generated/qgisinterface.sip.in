@@ -586,6 +586,13 @@ Returns the Hide Deselected Layers action.
 %End
     virtual QAction *actionShowSelectedLayers() = 0;
 
+    virtual QAction *actionToggleSelectedLayers() = 0;
+%Docstring
+Returns the Toggle Selected Layers action.
+
+.. versionadded:: 3.14
+%End
+
     virtual QAction *actionManagePlugins() = 0;
     virtual QAction *actionPluginListSeparator() = 0;
     virtual QAction *actionShowPythonDialog() = 0;
