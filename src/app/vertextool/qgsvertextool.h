@@ -298,6 +298,9 @@ class APP_EXPORT QgsVertexTool : public QgsMapToolAdvancedDigitizing
     //! update the highlight of vertices from the locked feature
     void updateLockedFeatureVertices();
 
+    //! Updates the polylines connecting mDragStraightBands static vertices
+    void updateDragStraightBandsConnectingLine();
+
   private:
 
     // members used for temporary highlight of stuff
@@ -336,7 +339,7 @@ class APP_EXPORT QgsVertexTool : public QgsMapToolAdvancedDigitizing
     };
 
     /**
-     * markers for points used only for moving standalone point geoetry
+     * markers for points used only for moving standalone point geometry
      * (there are no adjacent vertices so it is not used in mDragBands)
      */
     QList<QgsVertexMarker *> mDragPointMarkers;
@@ -496,6 +499,24 @@ class APP_EXPORT QgsVertexTool : public QgsMapToolAdvancedDigitizing
     std::unique_ptr<Vertex> mRangeSelectionFirstVertex;
 
     VertexToolMode mMode = AllLayers;
+
+    //! Whether we are trying to snap on the straight line between vertices
+    bool mSnappingToOrtho = false;
+
+    //! A multipolyline with all lines connecting mDragStraightBands static vertices
+    QgsGeometry mDragStraightBandsConnectingLine;
+
+    //! Points where mDragStraightBandsConnectingLine self intersects
+    QgsGeometry mDragStraightBandsConnectingLineIntersections;
+
+    //! Points where ... perpendicular
+    QgsGeometry mDragStraightBandsConnectingLinePerpendicular;
+
+    //! The current snap point on the lines connecting mDragStraightBands static vertices
+    QgsGeometry mSnapToStraightLinePoint;
+
+    //! A visual marker for snapping on the lines connecting mDragStraightBands static vertices
+    QgsVertexMarker *mSnapToStraightLineMarker;
 };
 
 

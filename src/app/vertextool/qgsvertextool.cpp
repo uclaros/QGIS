@@ -40,6 +40,7 @@
 #include "qgsmapmouseevent.h"
 #include "qgsexpressioncontextutils.h"
 #include "qgsmessagebar.h"
+#include "qgscircularstring.h"
 
 #include <QMenu>
 #include <QRubberBand>
@@ -309,6 +310,13 @@ QgsVertexTool::QgsVertexTool( QgsMapCanvas *canvas, QgsAdvancedDigitizingDockWid
   mEndpointMarker->setIconSize( QgsGuiUtils::scaleIconSize( 10 ) );
   mEndpointMarker->setPenWidth( QgsGuiUtils::scaleIconSize( 3 ) );
   mEndpointMarker->setVisible( false );
+
+  mSnapToStraightLineMarker = new QgsVertexMarker( canvas );
+  mSnapToStraightLineMarker->setIconType( QgsVertexMarker::ICON_CROSS );
+  mSnapToStraightLineMarker->setColor( Qt::blue );
+  mSnapToStraightLineMarker->setIconSize( QgsGuiUtils::scaleIconSize( 10 ) );
+  mSnapToStraightLineMarker->setPenWidth( QgsGuiUtils::scaleIconSize( 1 ) );
+  mSnapToStraightLineMarker->setVisible( false );
 }
 
 QgsVertexTool::~QgsVertexTool()
@@ -320,6 +328,7 @@ QgsVertexTool::~QgsVertexTool()
   delete mEdgeBand;
   delete mEndpointMarker;
   delete mVertexEditor;
+  delete mSnapToStraightLineMarker;
 }
 
 void QgsVertexTool::activate()
@@ -430,6 +439,11 @@ void QgsVertexTool::clearDragBands()
   for ( const CircularBand &b : qgis::as_const( mDragCircularBands ) )
     delete b.band;
   mDragCircularBands.clear();
+
+  mDragStraightBandsConnectingLine = QgsGeometry();
+  mDragStraightBandsConnectingLineIntersections = QgsGeometry();
+  mDragStraightBandsConnectingLinePerpendicular = QgsGeometry();
+  mSnapToStraightLineMarker->setVisible( false );
 }
 
 void QgsVertexTool::cadCanvasPressEvent( QgsMapMouseEvent *e )
@@ -466,7 +480,7 @@ void QgsVertexTool::cadCanvasPressEvent( QgsMapMouseEvent *e )
 
   if ( e->button() == Qt::LeftButton )
   {
-    if ( e->modifiers() & Qt::ControlModifier || e->modifiers() & Qt::ShiftModifier )
+    if ( !mSnappingToOrtho && ( e->modifiers() & Qt::ControlModifier || e->modifiers() & Qt::ShiftModifier ) )
     {
       // shift or ctrl-click vertices to highlight without entering edit mode
       QgsPointLocator::Match m = snapToEditableLayer( e );
@@ -649,13 +663,22 @@ void QgsVertexTool::cadCanvasReleaseEvent( QgsMapMouseEvent *e )
   }
   else  // selection rect is not being dragged
   {
-    if ( e->button() == Qt::LeftButton && !( e->modifiers() & Qt::ShiftModifier ) && !( e->modifiers() & Qt::ControlModifier ) )
+    if ( e->button() == Qt::LeftButton )
     {
       // accepting action
       if ( mDraggingVertex )
       {
-        QgsPointLocator::Match match = e->mapPointMatch();
-        moveVertex( e->mapPoint(), &match );
+        if ( mSnappingToOrtho )
+        {
+          // we don't want normal snapping
+          QgsPointLocator::Match match;
+          moveVertex( mSnapToStraightLinePoint.asPoint(), &match );
+        }
+        else
+        {
+          QgsPointLocator::Match match = e->mapPointMatch();
+          moveVertex( e->mapPoint(), &match );
+        }
       }
       else if ( mDraggingEdge )
       {
@@ -729,10 +752,65 @@ void QgsVertexTool::cadCanvasMoveEvent( QgsMapMouseEvent *e )
 
 void QgsVertexTool::mouseMoveDraggingVertex( QgsMapMouseEvent *e )
 {
-  mSnapIndicator->setMatch( e->mapPointMatch() );
-  mEdgeCenterMarker->setVisible( false );
+  // use shift while moving a vertex in order to snap to the straight lines connecting
+  // the rubberbands' static vertices
+  if ( QApplication::queryKeyboardModifiers().testFlag( Qt::ShiftModifier ) )
+  {
+    if ( !mSnappingToOrtho )
+      updateDragStraightBandsConnectingLine();
+    mSnappingToOrtho = true;
+    QgsGeometry mapPoint = QgsGeometry::fromPointXY( toMapCoordinates( e->pos() ) );
+    double distIntersection = -1.0;
+    double distPerpendicular = -1.0;
+    QgsGeometry pointOnLine;
+    QgsGeometry pointOnIntersection;
+    QgsGeometry pointOnPerpendicular;
+    pointOnLine = mDragStraightBandsConnectingLine.nearestPoint( mapPoint );
+    if ( !mDragStraightBandsConnectingLineIntersections.isEmpty() )
+    {
+      pointOnIntersection = mDragStraightBandsConnectingLineIntersections.nearestPoint( pointOnLine );
+      distIntersection = pointOnIntersection.distance( pointOnLine );
+    }
+    if ( !mDragStraightBandsConnectingLinePerpendicular.isEmpty() )
+    {
+      pointOnPerpendicular = mDragStraightBandsConnectingLinePerpendicular.nearestPoint( pointOnLine );
+      distPerpendicular = pointOnPerpendicular.distance( pointOnLine );
+    }
+    if ( mDragStraightBandsConnectingLine.constGet()->partCount() == 1 )
+    {
 
-  moveDragBands( e->mapPoint() );
+    }
+    // TODO: compare distance in screen units
+    if ( distIntersection != -1 && distIntersection < 0.1 )
+    {
+      mSnapToStraightLinePoint = pointOnIntersection;
+      mSnapToStraightLineMarker->setIconType( QgsVertexMarker::ICON_X );
+    }
+    else if ( distPerpendicular != -1 && distPerpendicular < 0.1 )
+    {
+      mSnapToStraightLinePoint = pointOnPerpendicular;
+      mSnapToStraightLineMarker->setIconType( QgsVertexMarker::ICON_BOX );
+    }
+    else
+    {
+      mSnapToStraightLinePoint = pointOnLine;
+      mSnapToStraightLineMarker->setIconType( QgsVertexMarker::ICON_DOUBLE_TRIANGLE );
+    }
+    mSnapToStraightLineMarker->setCenter( mSnapToStraightLinePoint.asPoint() );
+    mSnapToStraightLineMarker->setVisible( true );
+
+    mSnapIndicator->setMatch( QgsPointLocator::Match() );
+    moveDragBands( mSnapToStraightLinePoint.asPoint() );
+  }
+  else
+  {
+    mSnappingToOrtho = false;
+    mSnapToStraightLineMarker->setVisible( false );
+    mSnapIndicator->setMatch( e->mapPointMatch() );
+    mEdgeCenterMarker->setVisible( false );
+
+    moveDragBands( e->mapPoint() );
+  }
 }
 
 void QgsVertexTool::moveDragBands( const QgsPointXY &mapPoint )
@@ -2936,4 +3014,79 @@ void QgsVertexTool::clean()
     stopSelectionRubberBand();
     mSelectionRubberBandStartPos.reset();
   }
+}
+
+void QgsVertexTool::updateDragStraightBandsConnectingLine()
+{
+  mDragStraightBandsConnectingLine = QgsGeometry();
+  mDragStraightBandsConnectingLineIntersections = QgsGeometry();
+  mDragStraightBandsConnectingLinePerpendicular = QgsGeometry();
+  // gather the unique points that define the straight lines connecting
+  // the static (non-moving) mDragStraightBands' vertices
+  QVector< QgsPointXY> staticPoints;
+  for ( int i = 0; i < mDragStraightBands.count(); ++i )
+  {
+    StraightBand &b = mDragStraightBands[i];
+    if ( b.moving0 && !b.moving1 && !staticPoints.contains( b.p1 ) )
+      staticPoints << b.p1;
+    if ( b.moving1 && !b.moving0 && !staticPoints.contains( b.p0 ) )
+      staticPoints << b.p0;
+  }
+  // the straight lines we want to snap to, all in a single multipolyline
+  QgsMultiPolylineXY straightLines;
+  for ( int i = 0; i < staticPoints.size(); ++i )
+  {
+    for ( int j = i + 1; j < staticPoints.size(); ++j )
+    {
+      QgsPolylineXY oneLine =  QgsPolylineXY() << staticPoints.at( i ) << staticPoints.at( j );
+      QgsGeometry oneLineGeometry = QgsGeometry::fromPolylineXY( oneLine );
+
+      // we want to exclude endpoints from the intersections
+      const QgsGeometry allIntersections = mDragStraightBandsConnectingLine.intersection( oneLineGeometry );
+      QgsGeometry intersections = allIntersections.difference( QgsGeometry::fromMultiPointXY( staticPoints ) );
+      mDragStraightBandsConnectingLineIntersections = QgsGeometry::unaryUnion( QVector<QgsGeometry>() << mDragStraightBandsConnectingLineIntersections << intersections );
+
+      straightLines.append( oneLine );
+      mDragStraightBandsConnectingLine = QgsGeometry::fromMultiPolylineXY( straightLines );
+    }
+  }
+
+//  for (const auto line : qgis::as_const( straightLines ) )
+//  {
+
+//  }
+
+  QgsGeometryCollection circles;
+  QgsGeometryCollection ints;
+  QgsGeometryConstPartIterator it = mDragStraightBandsConnectingLine.constParts();
+  while ( it.hasNext() )
+  {
+    const QgsAbstractGeometry *line = it.next();
+    QgsCircularString *circle = new QgsCircularString( line->vertexAt( QgsVertexId( 0, 0, 0 ) ),
+        line->vertexAt( QgsVertexId( 0, 0, 1 ) ),
+        line->vertexAt( QgsVertexId( 0, 0, 0 ) ) );
+//    QgsGeometry intersection = QgsGeometry( &circles ).intersection( QgsGeometry( &circle ) );
+//    ints.addGeometry( intersection.get() );
+    circles.addGeometry( circle );
+  }
+  QgsDebugMsg( "Circles:" );
+  QgsDebugMsg( QString::number( circles.partCount() ) );
+
+
+  QgsMultiPointXY perpendicularPoints;
+  for ( int i = 0; i < staticPoints.size(); ++i )
+  {
+    for ( auto line : qgis::as_const( straightLines ) )
+    {
+      if ( line.contains( staticPoints.at( i ) ) )
+        continue;
+      QgsPointXY perpendicularPoint;
+      staticPoints.at( i ).sqrDistToSegment( line.first().x(), line.first().y(), line.last().x(), line.last().y(), perpendicularPoint );
+      perpendicularPoints.append( perpendicularPoint );
+    }
+  }
+  mDragStraightBandsConnectingLinePerpendicular = QgsGeometry::fromMultiPointXY( perpendicularPoints );
+  QgsDebugMsg( "Calculated snap points" );
+  QgsDebugMsg( mDragStraightBandsConnectingLine.asWkt() );
+  QgsDebugMsg( mDragStraightBandsConnectingLineIntersections.asWkt() );
 }
