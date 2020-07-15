@@ -1603,6 +1603,33 @@ Splits features cut by the given line
    changes can be discarded by calling :py:func:`~QgsVectorLayer.rollBack`.
 %End
 
+    QgsGeometry::OperationResult splitFeatures( const QgsPointSequence &splitLine, QgsPointSequence &topologyTestPoints );
+%Docstring
+Splits features cut by the given line
+
+:param splitLine: line that splits the layer features
+:param topologyTestPoints: topological points to be added to other layers
+
+:return: QgsGeometry.OperationResult
+
+         - Success
+         - NothingHappened
+         - LayerNotEditable
+         - InvalidInputGeometryType
+         - InvalidBaseGeometry
+         - GeometryEngineError
+         - SplitCannotSplitPoint
+
+.. note::
+
+   Calls to :py:func:`~QgsVectorLayer.splitFeatures` are only valid for layers in which edits have been enabled
+   by a call to :py:func:`~QgsVectorLayer.startEditing`. Changes made to features using this method are not committed
+   to the underlying data provider until a :py:func:`~QgsVectorLayer.commitChanges` call is made. Any uncommitted
+   changes can be discarded by calling :py:func:`~QgsVectorLayer.rollBack`.
+
+.. versionadded:: 3.16
+%End
+
     int addTopologicalPoints( const QgsGeometry &geom );
 %Docstring
 Adds topological points for every vertex of the geometry.
@@ -1664,6 +1691,27 @@ editing.
    changes can be discarded by calling :py:func:`~QgsVectorLayer.rollBack`.
 
 .. versionadded:: 3.10
+%End
+
+    int addTopologicalPoints( const QgsPointSequence &ps );
+%Docstring
+Adds a vertex to segments which intersect any of the points ``p`` but don't
+already have a vertex there. If a feature already has a vertex at position ``p``,
+no additional vertex is inserted. This method is useful for topological
+editing.
+
+:param ps: point sequence of the vertices
+
+:return: 0 in case of success
+
+.. note::
+
+   Calls to :py:func:`~QgsVectorLayer.addTopologicalPoints` are only valid for layers in which edits have been enabled
+   by a call to :py:func:`~QgsVectorLayer.startEditing`. Changes made to features using this method are not committed
+   to the underlying data provider until a :py:func:`~QgsVectorLayer.commitChanges` call is made. Any uncommitted
+   changes can be discarded by calling :py:func:`~QgsVectorLayer.rollBack`.
+
+.. versionadded:: 3.16
 %End
 
 

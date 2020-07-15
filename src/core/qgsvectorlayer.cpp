@@ -1377,6 +1377,15 @@ QgsGeometry::OperationResult QgsVectorLayer::splitFeatures( const QgsPointSequen
   return utils.splitFeatures( splitLine, topologicalEditing );
 }
 
+QgsGeometry::OperationResult QgsVectorLayer::splitFeatures( const QgsPointSequence &splitLine, QgsPointSequence &topologyTestPoints )
+{
+  if ( !mValid || !mEditBuffer || !mDataProvider )
+    return QgsGeometry::OperationResult::LayerNotEditable;
+
+  QgsVectorLayerEditUtils utils( this );
+  return utils.splitFeatures( splitLine, true, topologyTestPoints );
+}
+
 int QgsVectorLayer::addTopologicalPoints( const QgsGeometry &geom )
 {
   if ( !mValid || !mEditBuffer || !mDataProvider )
@@ -1398,6 +1407,15 @@ int QgsVectorLayer::addTopologicalPoints( const QgsPoint &p )
 
   QgsVectorLayerEditUtils utils( this );
   return utils.addTopologicalPoints( p );
+}
+
+int QgsVectorLayer::addTopologicalPoints( const QgsPointSequence &ps )
+{
+  if ( !mValid || !mEditBuffer || !mDataProvider )
+    return -1;
+
+  QgsVectorLayerEditUtils utils( this );
+  return utils.addTopologicalPoints( ps );
 }
 
 void QgsVectorLayer::setLabeling( QgsAbstractVectorLayerLabeling *labeling )

@@ -296,6 +296,12 @@ QgsGeometry::OperationResult QgsVectorLayerEditUtils::splitFeatures( const QVect
 
 QgsGeometry::OperationResult QgsVectorLayerEditUtils::splitFeatures( const QgsPointSequence &splitLine, bool topologicalEditing )
 {
+  QgsPointSequence topologyTestPoints;
+  return splitFeatures( splitLine, topologicalEditing, topologyTestPoints );
+}
+
+QgsGeometry::OperationResult QgsVectorLayerEditUtils::splitFeatures( const QgsPointSequence &splitLine, bool topologicalEditing, QgsPointSequence &topologyTestPoints )
+{
   if ( !mLayer->isSpatial() )
     return QgsGeometry::InvalidBaseGeometry;
 
@@ -363,9 +369,10 @@ QgsGeometry::OperationResult QgsVectorLayerEditUtils::splitFeatures( const QgsPo
       continue;
     }
     QVector<QgsGeometry> newGeometries;
-    QgsPointSequence topologyTestPoints;
+    QgsPointSequence featureTopologyTestPoints;
     QgsGeometry featureGeom = feat.geometry();
-    splitFunctionReturn = featureGeom.splitGeometry( splitLine, newGeometries, topologicalEditing, topologyTestPoints );
+    splitFunctionReturn = featureGeom.splitGeometry( splitLine, newGeometries, topologicalEditing, featureTopologyTestPoints );
+    topologyTestPoints.append( featureTopologyTestPoints );
     if ( splitFunctionReturn == QgsGeometry::OperationResult::Success )
     {
       //change this geometry
@@ -381,8 +388,8 @@ QgsGeometry::OperationResult QgsVectorLayerEditUtils::splitFeatures( const QgsPo
 
       if ( topologicalEditing )
       {
-        QgsPointSequence::const_iterator topol_it = topologyTestPoints.constBegin();
-        for ( ; topol_it != topologyTestPoints.constEnd(); ++topol_it )
+        QgsPointSequence::const_iterator topol_it = featureTopologyTestPoints.constBegin();
+        for ( ; topol_it != featureTopologyTestPoints.constEnd(); ++topol_it )
         {
           addTopologicalPoints( *topol_it );
         }
@@ -538,6 +545,31 @@ int QgsVectorLayerEditUtils::addTopologicalPoints( const QgsGeometry &geom )
 
   QgsAbstractGeometry::vertex_iterator it = geom.vertices_begin();
   while ( it != geom.vertices_end() )
+  {
+    if ( addTopologicalPoints( *it ) != 0 )
+    {
+      returnVal = 2;
+    }
+    it++;
+  }
+
+  return returnVal;
+}
+
+int QgsVectorLayerEditUtils::addTopologicalPoints( const QgsPointSequence &ps )
+{
+  if ( !mLayer->isSpatial() )
+    return 1;
+
+  if ( ps.isEmpty() )
+  {
+    return 1;
+  }
+
+  int returnVal = 0;
+
+  QgsPointSequence::const_iterator it = ps.constBegin();
+  while ( it != ps.constEnd() )
   {
     if ( addTopologicalPoints( *it ) != 0 )
     {

@@ -204,6 +204,16 @@ class CORE_EXPORT QgsVectorLayerEditUtils
     QgsGeometry::OperationResult splitFeatures( const QgsPointSequence &splitLine, bool topologicalEditing = false );
 
     /**
+     * Splits features cut by the given line
+     * \param splitLine line that splits the layer features
+     * \param topologyTestPoints topological points
+     * \returns 0 in case of success,
+     *  4 if there is a selection but no feature split
+     * \since 3.16
+     */
+    QgsGeometry::OperationResult splitFeatures( const QgsPointSequence &splitLine, bool topologicalEditing, QgsPointSequence &topologyTestPoints );
+
+    /**
      * Adds topological points for every vertex of the geometry.
      * \param geom the geometry where each vertex is added to segments of other features
      * \return 0 in case of success
@@ -229,6 +239,16 @@ class CORE_EXPORT QgsVectorLayerEditUtils
      * \since QGIS 3.10
      */
     int addTopologicalPoints( const QgsPoint &p );
+
+    /**
+     * Adds a vertex to segments which intersect point \a p but don't
+     * already have a vertex there. If a feature already has a vertex at position p,
+     * no additional vertex is inserted. This method is useful for topological
+     * editing.
+     * \return 0 in case of success
+     * \since QGIS 3.16
+     */
+    int addTopologicalPoints( const QgsPointSequence &ps );
 
   private:
 

@@ -93,8 +93,9 @@ void QgsMapToolSplitFeatures::cadCanvasReleaseEvent( QgsMapMouseEvent *e )
 
     //bring up dialog if a split was not possible (polygon) or only done once (line)
     int topologicalEditing = QgsProject::instance()->topologicalEditing();
+    QgsPointSequence topologyTestPoints;
     vlayer->beginEditCommand( tr( "Features split" ) );
-    QgsGeometry::OperationResult returnCode = vlayer->splitFeatures( pointsZM(), topologicalEditing );
+    QgsGeometry::OperationResult returnCode = topologicalEditing ? vlayer->splitFeatures( pointsZM(), topologyTestPoints ) : vlayer->splitFeatures( pointsZM(), topologicalEditing );
     vlayer->endEditCommand();
     if ( returnCode == QgsGeometry::OperationResult::NothingHappened )
     {
@@ -128,6 +129,28 @@ void QgsMapToolSplitFeatures::cadCanvasReleaseEvent( QgsMapMouseEvent *e )
         tr( "An error occurred during splitting." ),
         Qgis::Warning,
         QgisApp::instance()->messageTimeout() );
+    }
+    else if ( returnCode == QgsGeometry::OperationResult::Success &&
+              topologicalEditing == true &&
+              ! topologyTestPoints.isEmpty() )
+    {
+      //success, add topological points to other layers
+      QList<QgsVectorLayer *> editableLayers;
+      const auto layers = canvas()->layers();
+      for ( QgsMapLayer *layer : layers )
+      {
+        QgsVectorLayer *vectorLayer = qobject_cast<QgsVectorLayer *>( layer );
+        if ( vectorLayer && vectorLayer->isEditable() && vectorLayer->isSpatial() && vectorLayer != vlayer )
+          editableLayers << vectorLayer;
+      }
+      for ( QgsVectorLayer *vectorLayer : editableLayers )
+      {
+        if ( vectorLayer->geometryType() != QgsWkbTypes::LineGeometry && vectorLayer->geometryType() != QgsWkbTypes::PolygonGeometry )
+          continue;
+        vectorLayer->beginEditCommand( tr( "Topological points from Features split" ) );
+        vectorLayer->addTopologicalPoints( topologyTestPoints );
+        vectorLayer->endEditCommand();
+      }
     }
 
     stopCapturing();
