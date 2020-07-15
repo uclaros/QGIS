@@ -566,19 +566,19 @@ int QgsVectorLayerEditUtils::addTopologicalPoints( const QgsPointSequence &ps )
     return 1;
   }
 
-  int returnVal = 0;
+  bool pointsAdded = false;
 
   QgsPointSequence::const_iterator it = ps.constBegin();
   while ( it != ps.constEnd() )
   {
-    if ( addTopologicalPoints( *it ) != 0 )
+    if ( addTopologicalPoints( *it ) == 0 )
     {
-      returnVal = 2;
+      pointsAdded = true;
     }
     it++;
   }
 
-  return returnVal;
+  return pointsAdded ? 0 : 2;
 }
 
 int QgsVectorLayerEditUtils::addTopologicalPoints( const QgsPoint &p )
@@ -633,6 +633,7 @@ int QgsVectorLayerEditUtils::addTopologicalPoints( const QgsPoint &p )
   if ( segments.isEmpty() )
     return 2;
 
+  bool pointsAdded = false;
   for ( QMap<QgsFeatureId, int>::const_iterator it = segments.constBegin(); it != segments.constEnd(); ++it )
   {
     QgsFeatureId fid = it.key();
@@ -650,9 +651,13 @@ int QgsVectorLayerEditUtils::addTopologicalPoints( const QgsPoint &p )
     {
       QgsDebugMsg( QStringLiteral( "failed to insert topo point" ) );
     }
+    else
+    {
+      pointsAdded = true;
+    }
   }
 
-  return 0;
+  return pointsAdded ? 0 : 2;
 }
 
 int QgsVectorLayerEditUtils::addTopologicalPoints( const QgsPointXY &p )

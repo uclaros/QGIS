@@ -148,8 +148,11 @@ void QgsMapToolSplitFeatures::cadCanvasReleaseEvent( QgsMapMouseEvent *e )
         if ( vectorLayer->geometryType() != QgsWkbTypes::LineGeometry && vectorLayer->geometryType() != QgsWkbTypes::PolygonGeometry )
           continue;
         vectorLayer->beginEditCommand( tr( "Topological points from Features split" ) );
-        vectorLayer->addTopologicalPoints( topologyTestPoints );
-        vectorLayer->endEditCommand();
+        int returnValue = vectorLayer->addTopologicalPoints( topologyTestPoints );
+        if ( returnValue == 0 )
+          vectorLayer->endEditCommand();
+        else
+          vectorLayer->destroyEditCommand();
       }
     }
 
