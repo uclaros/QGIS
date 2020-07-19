@@ -1578,7 +1578,7 @@ Splits features cut by the given line
    - will be removed in QGIS 4.0. Use the variant which accepts QgsPoint objects instead of QgsPointXY.
 %End
 
-    QgsGeometry::OperationResult splitFeatures( const QgsPointSequence &splitLine, bool topologicalEditing = false );
+    QgsGeometry::OperationResult splitFeatures( const QVector<QgsPoint>  &splitLine, bool topologicalEditing = false );
 %Docstring
 Splits features cut by the given line
 
@@ -1603,7 +1603,7 @@ Splits features cut by the given line
    changes can be discarded by calling :py:func:`~QgsVectorLayer.rollBack`.
 %End
 
-    QgsGeometry::OperationResult splitFeatures( const QgsPointSequence &splitLine, bool topologicalEditing, QgsPointSequence &topologyTestPoints /Out/ );
+    QgsGeometry::OperationResult splitFeatures( const QVector<QgsPoint>  &splitLine, bool topologicalEditing, QVector<QgsPoint>  &topologyTestPoints /Out/ );
 %Docstring
 Splits features cut by the given line
 

@@ -199,7 +199,7 @@ class CORE_EXPORT QgsVectorLayerEditUtils
      * \param topologicalEditing TRUE if topological editing is enabled
      * \returns QgsGeometry::OperationResult
      */
-    QgsGeometry::OperationResult splitFeatures( const QgsPointSequence &splitLine, bool topologicalEditing = false );
+    QgsGeometry::OperationResult splitFeatures( const QgsPointSequence SIP_PYALTERNATIVETYPE( QVector<QgsPoint> ) &splitLine, bool topologicalEditing = false );
 
     /**
      * Splits features cut by the given line
@@ -209,7 +209,7 @@ class CORE_EXPORT QgsVectorLayerEditUtils
      * \returns QgsGeometry::OperationResult
      * \since 3.16
      */
-    QgsGeometry::OperationResult splitFeatures( const QgsPointSequence &splitLine, bool topologicalEditing, QgsPointSequence &topologyTestPoints SIP_OUT );
+    QgsGeometry::OperationResult splitFeatures( const QgsPointSequence SIP_PYALTERNATIVETYPE( QVector<QgsPoint> ) &splitLine, bool topologicalEditing, QgsPointSequence SIP_PYALTERNATIVETYPE( QVector<QgsPoint> ) &topologyTestPoints SIP_OUT );
 
     /**
      * Adds topological points for every vertex of the geometry.

@@ -1545,7 +1545,7 @@ class CORE_EXPORT QgsVectorLayer : public QgsMapLayer, public QgsExpressionConte
      * to the underlying data provider until a commitChanges() call is made. Any uncommitted
      * changes can be discarded by calling rollBack().
      */
-    Q_INVOKABLE QgsGeometry::OperationResult splitFeatures( const QgsPointSequence &splitLine, bool topologicalEditing = false );
+    Q_INVOKABLE QgsGeometry::OperationResult splitFeatures( const QgsPointSequence SIP_PYALTERNATIVETYPE( QVector<QgsPoint> ) &splitLine, bool topologicalEditing = false );
 
     /**
      * Splits features cut by the given line
@@ -1568,7 +1568,7 @@ class CORE_EXPORT QgsVectorLayer : public QgsMapLayer, public QgsExpressionConte
      * changes can be discarded by calling rollBack().
      * \since 3.16
      */
-    Q_INVOKABLE QgsGeometry::OperationResult splitFeatures( const QgsPointSequence &splitLine, bool topologicalEditing, QgsPointSequence &topologyTestPoints SIP_OUT );
+    Q_INVOKABLE QgsGeometry::OperationResult splitFeatures( const QgsPointSequence SIP_PYALTERNATIVETYPE( QVector<QgsPoint> ) &splitLine, bool topologicalEditing, QgsPointSequence SIP_PYALTERNATIVETYPE( QVector<QgsPoint> ) &topologyTestPoints SIP_OUT );
 
     /**
      * Adds topological points for every vertex of the geometry.
