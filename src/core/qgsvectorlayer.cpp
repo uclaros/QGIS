@@ -1377,13 +1377,13 @@ QgsGeometry::OperationResult QgsVectorLayer::splitFeatures( const QgsPointSequen
   return utils.splitFeatures( splitLine, topologicalEditing );
 }
 
-QgsGeometry::OperationResult QgsVectorLayer::splitFeatures( const QgsPointSequence &splitLine, QgsPointSequence &topologyTestPoints )
+QgsGeometry::OperationResult QgsVectorLayer::splitFeatures( const QgsPointSequence &splitLine, bool topologicalEditing, QgsPointSequence &topologyTestPoints )
 {
   if ( !mValid || !mEditBuffer || !mDataProvider )
     return QgsGeometry::OperationResult::LayerNotEditable;
 
   QgsVectorLayerEditUtils utils( this );
-  return utils.splitFeatures( splitLine, true, topologyTestPoints );
+  return utils.splitFeatures( splitLine, topologicalEditing, topologyTestPoints );
 }
 
 int QgsVectorLayer::addTopologicalPoints( const QgsGeometry &geom )

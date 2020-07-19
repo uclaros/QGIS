@@ -95,9 +95,7 @@ void QgsMapToolSplitFeatures::cadCanvasReleaseEvent( QgsMapMouseEvent *e )
     int topologicalEditing = QgsProject::instance()->topologicalEditing();
     QgsPointSequence topologyTestPoints;
     vlayer->beginEditCommand( tr( "Features split" ) );
-    // if topological editing is enabled, run the appropriate method variant
-    // so that topological points are added to other features of the same layer
-    QgsGeometry::OperationResult returnCode = topologicalEditing ? vlayer->splitFeatures( pointsZM(), topologyTestPoints ) : vlayer->splitFeatures( pointsZM(), topologicalEditing );
+    QgsGeometry::OperationResult returnCode = vlayer->splitFeatures( pointsZM(), topologicalEditing, topologyTestPoints );
     vlayer->endEditCommand();
     if ( returnCode == QgsGeometry::OperationResult::NothingHappened )
     {
