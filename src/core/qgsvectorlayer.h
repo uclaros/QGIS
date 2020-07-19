@@ -1550,7 +1550,7 @@ class CORE_EXPORT QgsVectorLayer : public QgsMapLayer, public QgsExpressionConte
     /**
      * Splits features cut by the given line
      * \param splitLine line that splits the layer features
-     * \param topologyTestPoints topological points to be added to other layers
+     * \param[out] topologyTestPoints topological points to be tested against other layers
      * \returns QgsGeometry::OperationResult
      *
      * - Success
@@ -1567,7 +1567,7 @@ class CORE_EXPORT QgsVectorLayer : public QgsMapLayer, public QgsExpressionConte
      * changes can be discarded by calling rollBack().
      * \since 3.16
      */
-    Q_INVOKABLE QgsGeometry::OperationResult splitFeatures( const QgsPointSequence &splitLine, QgsPointSequence &topologyTestPoints );
+    Q_INVOKABLE QgsGeometry::OperationResult splitFeatures( const QgsPointSequence &splitLine, QgsPointSequence &topologyTestPoints SIP_OUT );
 
     /**
      * Adds topological points for every vertex of the geometry.

@@ -95,6 +95,8 @@ void QgsMapToolSplitFeatures::cadCanvasReleaseEvent( QgsMapMouseEvent *e )
     int topologicalEditing = QgsProject::instance()->topologicalEditing();
     QgsPointSequence topologyTestPoints;
     vlayer->beginEditCommand( tr( "Features split" ) );
+    // if topological editing is enabled, run the appropriate method variant
+    // so that topological points are added to other features of the same layer
     QgsGeometry::OperationResult returnCode = topologicalEditing ? vlayer->splitFeatures( pointsZM(), topologyTestPoints ) : vlayer->splitFeatures( pointsZM(), topologicalEditing );
     vlayer->endEditCommand();
     if ( returnCode == QgsGeometry::OperationResult::NothingHappened )
@@ -134,25 +136,29 @@ void QgsMapToolSplitFeatures::cadCanvasReleaseEvent( QgsMapMouseEvent *e )
               topologicalEditing == true &&
               ! topologyTestPoints.isEmpty() )
     {
-      //success, add topological points to other layers
+      //success, check if we need to add topological points to other layers
       QList<QgsVectorLayer *> editableLayers;
       const auto layers = canvas()->layers();
       for ( QgsMapLayer *layer : layers )
       {
         QgsVectorLayer *vectorLayer = qobject_cast<QgsVectorLayer *>( layer );
-        if ( vectorLayer && vectorLayer->isEditable() && vectorLayer->isSpatial() && vectorLayer != vlayer )
-          editableLayers << vectorLayer;
-      }
-      for ( QgsVectorLayer *vectorLayer : editableLayers )
-      {
-        if ( vectorLayer->geometryType() != QgsWkbTypes::LineGeometry && vectorLayer->geometryType() != QgsWkbTypes::PolygonGeometry )
-          continue;
-        vectorLayer->beginEditCommand( tr( "Topological points from Features split" ) );
+        if ( vectorLayer &&
+             vectorLayer->isEditable() &&
+             vectorLayer->isSpatial() &&
+             vectorLayer != vlayer &&
+             ( vectorLayer->geometryType() == QgsWkbTypes::LineGeometry ||
+               vectorLayer->geometryType() == QgsWkbTypes::PolygonGeometry ) )
+          vectorLayer->beginEditCommand( tr( "Topological points from Features split" ) );
         int returnValue = vectorLayer->addTopologicalPoints( topologyTestPoints );
         if ( returnValue == 0 )
+        {
           vectorLayer->endEditCommand();
+        }
         else
+        {
+          // the layer was not modified, leave the undo buffer intact
           vectorLayer->destroyEditCommand();
+        }
       }
     }
 

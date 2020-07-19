@@ -1603,12 +1603,12 @@ Splits features cut by the given line
    changes can be discarded by calling :py:func:`~QgsVectorLayer.rollBack`.
 %End
 
-    QgsGeometry::OperationResult splitFeatures( const QgsPointSequence &splitLine, QgsPointSequence &topologyTestPoints );
+    QgsGeometry::OperationResult splitFeatures( const QgsPointSequence &splitLine, QgsPointSequence &topologyTestPoints /Out/ );
 %Docstring
 Splits features cut by the given line
 
 :param splitLine: line that splits the layer features
-:param topologyTestPoints: topological points to be added to other layers
+\param[out] topologyTestPoints topological points to be tested against other layers
 
 :return: QgsGeometry.OperationResult
 
