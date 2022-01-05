@@ -191,7 +191,7 @@ bool QgsPointCloudLayerRenderer::render()
 #ifdef QGISDEBUG
   QgsDebugMsgLevel( QStringLiteral( "totals: %1 nodes | %2 points | %3ms" ).arg( nodesDrawn )
                     .arg( context.pointsRendered() )
-                    .arg( t.elapsed() ), 2 );
+                    .arg( t.elapsed() ), 1 );
 #endif
 
   mRenderer->stopRender( context );
@@ -224,13 +224,14 @@ int QgsPointCloudLayerRenderer::renderNodesSync( const QVector<IndexedPointCloud
 
     context.setAttributes( block->attributes() );
 
+    QgsDebugMsg( QStringLiteral( "Block: %1-%2-%3-%4" ).arg( n.d()).arg( n.x() ).arg( n.y() ).arg( n.z() ) );
     mRenderer->renderBlock( block.get(), context );
 
     context.setScale( contextScale );
     context.setOffset( contextOffset );
 
     ++nodesDrawn;
-
+    QgsDebugMsg( QStringLiteral( "nodesDrawn: %1" ).arg( nodesDrawn ) );
     // as soon as first block is rendered, we can start showing layer updates.
     // but if we are blocking render updates (so that a previously cached image is being shown), we wait
     // at most e.g. 3 seconds before we start forcing progressive updates.

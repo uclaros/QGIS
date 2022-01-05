@@ -73,7 +73,7 @@ void QgsPointCloudClassifiedRenderer::renderBlock( const QgsPointCloudBlock *blo
   const QgsPointCloudAttribute::DataType attributeType = attribute->type();
 
   const QgsDoubleRange zRange = context.renderContext().zRange();
-  const bool considerZ = !zRange.isInfinite();
+  const bool considerZ = !zRange.isInfinite() or true;
 
   int rendered = 0;
   double x = 0;
@@ -132,6 +132,7 @@ void QgsPointCloudClassifiedRenderer::renderBlock( const QgsPointCloudBlock *blo
     }
   }
   context.incrementPointsRendered( rendered );
+  QgsDebugMsg( QStringLiteral( "Block rendered %1 of %2 points" ).arg(rendered).arg(count) );
 }
 
 bool QgsPointCloudClassifiedRenderer::willRenderPoint( const QVariantMap &pointAttributes )
