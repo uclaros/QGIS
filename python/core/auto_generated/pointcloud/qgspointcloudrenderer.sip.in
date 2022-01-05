@@ -222,6 +222,8 @@ and generate a proper subclass.
 Renders a ``block`` of point cloud data using the specified render ``context``.
 %End
 
+    virtual void renderSortedCache( const QVector<QgsVector3D> *sortedPoints, QgsPointCloudRenderContext &context ) = 0;
+
 
     virtual bool willRenderPoint( const QMap<QString, QVariant> &pointAttributes );
 %Docstring

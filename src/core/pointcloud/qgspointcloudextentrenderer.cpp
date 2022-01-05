@@ -51,6 +51,11 @@ void QgsPointCloudExtentRenderer::renderBlock( const QgsPointCloudBlock *, QgsPo
 
 }
 
+void QgsPointCloudExtentRenderer::renderSortedCache( const QVector<QgsVector3D> *sortedPoints, QgsPointCloudRenderContext &context )
+{
+
+}
+
 QgsPointCloudRenderer *QgsPointCloudExtentRenderer::create( QDomElement &element, const QgsReadWriteContext &context )
 {
   std::unique_ptr< QgsPointCloudExtentRenderer > r = std::make_unique< QgsPointCloudExtentRenderer >();

@@ -301,6 +301,8 @@ class CORE_EXPORT QgsPointCloudRenderer
      */
     virtual void renderBlock( const QgsPointCloudBlock *block, QgsPointCloudRenderContext &context ) = 0;
 
+    virtual void renderSortedCache( const QVector<QgsVector3D> *sortedPoints, QgsPointCloudRenderContext &context ) = 0;
+
     /**
      * Returns the list of visible points of the point cloud layer \a layer and an extent defined by
      * a geometry in the 2D plane \a geometry.

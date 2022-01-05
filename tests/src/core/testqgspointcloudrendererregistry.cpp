@@ -32,6 +32,7 @@ class DummyRenderer : public QgsPointCloudRenderer
     QgsPointCloudRenderer *clone() const override { return new DummyRenderer(); }
     static QgsPointCloudRenderer *create( QDomElement &, const QgsReadWriteContext & ) { return new DummyRenderer(); }
     void renderBlock( const QgsPointCloudBlock *, QgsPointCloudRenderContext & ) override {}
+    void renderSortedCache( const QVector<QgsVector3D> *, QgsPointCloudRenderContext & ) override {}
     QDomElement save( QDomDocument &doc, const QgsReadWriteContext & ) const override { return doc.createElement( QStringLiteral( "test" ) ); }
 
 };

@@ -135,6 +135,57 @@ void QgsPointCloudClassifiedRenderer::renderBlock( const QgsPointCloudBlock *blo
   QgsDebugMsg( QStringLiteral( "Block rendered %1 of %2 points" ).arg(rendered).arg(count) );
 }
 
+void QgsPointCloudClassifiedRenderer::renderSortedCache( const QVector<QgsVector3D> *sortedPoints, QgsPointCloudRenderContext &context )
+{
+  const QgsRectangle visibleExtent = context.renderContext().extent();
+
+  const int count = sortedPoints->size();
+  const QgsDoubleRange zRange = context.renderContext().zRange();
+  const bool considerZ = !zRange.isInfinite() or true;
+
+  int rendered = 0;
+  double x = 0;
+  double y = 0;
+  double z = 0;
+  const QgsCoordinateTransform ct = context.renderContext().coordinateTransform();
+  const bool reproject = ct.isValid();
+
+
+  const QColor color = QColor(255,0,0);
+
+  for ( int i = 0; i < count; ++i )
+  {
+    if ( context.renderContext().renderingStopped() )
+    {
+      break;
+    }
+
+    x = sortedPoints->at( i ).x();
+    y = sortedPoints->at( i ).y();
+
+
+    if ( visibleExtent.contains( x, y ) )
+    {
+      if ( reproject )
+      {
+        try
+        {
+          ct.transformInPlace( x, y, z );
+        }
+        catch ( QgsCsException & )
+        {
+          continue;
+        }
+      }
+
+      drawPoint( x, y, color, context );
+      rendered++;
+    }
+  }
+  context.incrementPointsRendered( rendered );
+  QgsDebugMsg( QStringLiteral( "Block rendered %1 of %2 points" ).arg(rendered).arg(count) );
+}
+
 bool QgsPointCloudClassifiedRenderer::willRenderPoint( const QVariantMap &pointAttributes )
 {
   if ( !pointAttributes.contains( mAttribute ) )

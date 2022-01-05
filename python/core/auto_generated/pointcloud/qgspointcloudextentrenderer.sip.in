@@ -38,6 +38,8 @@ transferred to the renderer. If no ``symbol`` is specified a default one will be
 
     virtual void renderBlock( const QgsPointCloudBlock *block, QgsPointCloudRenderContext &context );
 
+    virtual void renderSortedCache( const QVector<QgsVector3D> *sortedPoints, QgsPointCloudRenderContext &context );
+
     virtual QDomElement save( QDomDocument &doc, const QgsReadWriteContext &context ) const;
 
 

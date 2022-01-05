@@ -129,6 +129,9 @@ void QgsPointCloudAttributeByRampRenderer::renderBlock( const QgsPointCloudBlock
   context.incrementPointsRendered( rendered );
 }
 
+void QgsPointCloudAttributeByRampRenderer::renderSortedCache( const QVector<QgsVector3D> *sortedPoints, QgsPointCloudRenderContext &context )
+{
+}
 
 QgsPointCloudRenderer *QgsPointCloudAttributeByRampRenderer::create( QDomElement &element, const QgsReadWriteContext &context )
 {

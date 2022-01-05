@@ -15,6 +15,7 @@
  *                                                                         *
  ***************************************************************************/
 
+#include <algorithm>
 #include <QElapsedTimer>
 #include <QPointer>
 
@@ -179,7 +180,11 @@ bool QgsPointCloudLayerRenderer::render()
   int nodesDrawn = 0;
   bool canceled = false;
 
-  if ( pc->accessType() == QgsPointCloudIndex::AccessType::Local )
+  if ( true )
+  {
+    nodesDrawn += renderNodesSorted( nodes, pc, context, request, canceled );
+  }
+  else if ( pc->accessType() == QgsPointCloudIndex::AccessType::Local )
   {
     nodesDrawn += renderNodesSync( nodes, pc, context, request, canceled );
   }
@@ -341,6 +346,71 @@ int QgsPointCloudLayerRenderer::renderNodesAsync( const QVector<IndexedPointClou
   }
 
   return nodesDrawn;
+}
+
+int QgsPointCloudLayerRenderer::renderNodesSorted( const QVector<IndexedPointCloudNode> &nodes, QgsPointCloudIndex *pc, QgsPointCloudRenderContext &context, QgsPointCloudRequest &request, bool &canceled )
+{
+    QVector<QgsVector3D> points;
+
+    for ( const IndexedPointCloudNode &n : nodes )
+    {
+      if ( context.renderContext().renderingStopped() )
+      {
+        QgsDebugMsgLevel( "canceled", 2 );
+        canceled = true;
+        break;
+      }
+      std::unique_ptr<QgsPointCloudBlock> block( pc->nodeData( n, request ) );
+
+      if ( !block )
+        continue;
+
+      QgsVector3D contextScale = context.scale();
+      QgsVector3D contextOffset = context.offset();
+
+      context.setScale( block->scale() );
+      context.setOffset( block->offset() );
+
+      context.setAttributes( block->attributes() );
+
+      QgsDebugMsg( QStringLiteral( "Added Block: %1-%2-%3-%4" ).arg( n.d()).arg( n.x() ).arg( n.y() ).arg( n.z() ) );
+
+
+
+      const char *ptr = block->data();
+      int count = block->pointCount();
+      double x = 0;
+      double y = 0;
+      double z = 0;
+      const QgsCoordinateTransform ct = context.renderContext().coordinateTransform();
+      const bool reproject = ct.isValid();
+      for ( int i = 0; i < count; ++i )
+      {
+        if ( context.renderContext().renderingStopped() )
+        {
+          break;
+        }
+        // be wary when copying this code!! In the renderer we explicitly request x/y/z as qint32 values, but in other
+        // situations these may be floats or doubles!
+        const qint32 ix = *reinterpret_cast< const qint32 * >( ptr + i * context.pointRecordSize() + context.xOffset() );
+        const qint32 iy = *reinterpret_cast< const qint32 * >( ptr + i * context.pointRecordSize() + context.yOffset() );
+        x = context.offset().x() + context.scale().x() * ix;
+        y = context.offset().y() + context.scale().y() * iy;
+        // be wary when copying this code!! In the renderer we explicitly request x/y/z as qint32 values, but in other
+        // situations these may be floats or doubles!
+        const qint32 iz = *reinterpret_cast<const qint32 * >( ptr + i * context.pointRecordSize() + context.zOffset() );
+        z = ( context.offset().z() + context.scale().z() * iz ) * context.zValueScale() + context.zValueFixedOffset();
+
+
+        points.append( QgsVector3D( x, y, z ) );
+      }
+    context.setScale( contextScale );
+    context.setOffset( contextOffset );
+    }
+
+    std::sort( points.begin(), points.end(), []( QgsVector3D a, QgsVector3D b ) { return a.z() > b.z(); } );
+    mRenderer->renderSortedCache( &points, context );
+    return points.size();
 }
 
 bool QgsPointCloudLayerRenderer::forceRasterRender() const
