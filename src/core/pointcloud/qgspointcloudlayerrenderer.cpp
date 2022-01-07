@@ -181,7 +181,27 @@ bool QgsPointCloudLayerRenderer::render()
 
   if ( pc->accessType() == QgsPointCloudIndex::AccessType::Local )
   {
-    nodesDrawn += renderNodesSync( nodes, pc, context, request, canceled );
+    switch ( mRenderer->drawOrder2d() )
+    {
+      case QgsPointCloudRenderer::DrawOrder2d::OrderBottomToTop:
+      {
+        const QVector<IndexedPointCloudNode> node = QVector<IndexedPointCloudNode>() << createOrderedNode( pc, context.renderContext(), nodes, mRenderer->drawOrder2d() );
+        nodesDrawn += renderNodesSync( node, pc, context, request, canceled );
+        QgsDebugMsgLevel( QStringLiteral( "%1" ).arg( mRenderer->drawOrder2d() ), 1 );
+        break;
+      }
+      case QgsPointCloudRenderer::DrawOrder2d::OrderTopToBottom:
+      {
+        const QVector<IndexedPointCloudNode> node = QVector<IndexedPointCloudNode>() << createOrderedNode( pc, context.renderContext(), nodes, mRenderer->drawOrder2d() );
+        nodesDrawn += renderNodesSync( node, pc, context, request, canceled );
+        QgsDebugMsgLevel( QStringLiteral( "%1" ).arg( mRenderer->drawOrder2d() ), 1 );
+        break;
+      }
+      case QgsPointCloudRenderer::DrawOrder2d::OrderUnchanged:
+      {
+        nodesDrawn += renderNodesSync( nodes, pc, context, request, canceled );
+      }
+    }
   }
   else if ( pc->accessType() == QgsPointCloudIndex::AccessType::Remote )
   {
@@ -389,6 +409,16 @@ QVector<IndexedPointCloudNode> QgsPointCloudLayerRenderer::traverseTree( const Q
   }
 
   return nodes;
+}
+
+IndexedPointCloudNode QgsPointCloudLayerRenderer::createOrderedNode( const QgsPointCloudIndex *pc, const QgsRenderContext &context, QVector<IndexedPointCloudNode> nodes, QgsPointCloudRenderer::DrawOrder2d order )
+{
+  // TODO: create a single node with data from all nodes, ordered by order
+  for ( const IndexedPointCloudNode &node : nodes )
+  {
+    return node;
+  }
+  return IndexedPointCloudNode();
 }
 
 QgsPointCloudLayerRenderer::~QgsPointCloudLayerRenderer() = default;
