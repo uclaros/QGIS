@@ -184,17 +184,10 @@ bool QgsPointCloudLayerRenderer::render()
     switch ( mRenderer->drawOrder2d() )
     {
       case QgsPointCloudRenderer::DrawOrder2d::OrderBottomToTop:
-      {
-        const QVector<IndexedPointCloudNode> node = QVector<IndexedPointCloudNode>() << createOrderedNode( pc, context.renderContext(), nodes, mRenderer->drawOrder2d() );
-        nodesDrawn += renderNodesSync( node, pc, context, request, canceled );
-        QgsDebugMsgLevel( QStringLiteral( "%1" ).arg( mRenderer->drawOrder2d() ), 1 );
-        break;
-      }
       case QgsPointCloudRenderer::DrawOrder2d::OrderTopToBottom:
       {
-        const QVector<IndexedPointCloudNode> node = QVector<IndexedPointCloudNode>() << createOrderedNode( pc, context.renderContext(), nodes, mRenderer->drawOrder2d() );
-        nodesDrawn += renderNodesSync( node, pc, context, request, canceled );
-        QgsDebugMsgLevel( QStringLiteral( "%1" ).arg( mRenderer->drawOrder2d() ), 1 );
+        nodesDrawn += renderNodesSorted( nodes, pc, context, request, canceled, mRenderer->drawOrder2d() );
+        QgsDebugMsg( QStringLiteral( "%1" ).arg( mRenderer->drawOrder2d() ) );
         break;
       }
       case QgsPointCloudRenderer::DrawOrder2d::OrderUnchanged:
@@ -411,14 +404,43 @@ QVector<IndexedPointCloudNode> QgsPointCloudLayerRenderer::traverseTree( const Q
   return nodes;
 }
 
-IndexedPointCloudNode QgsPointCloudLayerRenderer::createOrderedNode( const QgsPointCloudIndex *pc, const QgsRenderContext &context, QVector<IndexedPointCloudNode> nodes, QgsPointCloudRenderer::DrawOrder2d order )
+int QgsPointCloudLayerRenderer::renderNodesSorted( const QVector<IndexedPointCloudNode> &nodes, QgsPointCloudIndex *pc, QgsPointCloudRenderContext &context, QgsPointCloudRequest &request, bool &canceled, QgsPointCloudRenderer::DrawOrder2d order )
 {
-  // TODO: create a single node with data from all nodes, ordered by order
-  for ( const IndexedPointCloudNode &node : nodes )
+  int nodesDrawn = 0;
+  std::unique_ptr<QgsPointCloudBlock> bigBlock;
+
+  for ( const IndexedPointCloudNode &n : nodes )
   {
-    return node;
+    if ( context.renderContext().renderingStopped() )
+    {
+      QgsDebugMsgLevel( "canceled", 2 );
+      canceled = true;
+      break;
+    }
+    std::unique_ptr<QgsPointCloudBlock> block( pc->nodeData( n, request ) );
+
+    if ( !block )
+      continue;
+
+    // TODO: grab all blocks in to temporary containers
+    // TODO: sort containers based on Z by order
+    // TODO: merge into bigBlock
   }
-  return IndexedPointCloudNode();
+//  QgsVector3D contextScale = context.scale();
+//  QgsVector3D contextOffset = context.offset();
+
+//  context.setScale( bigBlock->scale() );
+//  context.setOffset( bigBlock->offset() );
+
+//  context.setAttributes( bigBlock->attributes() );
+
+//  mRenderer->renderBlock( bigBlock.get(), context );
+
+//  context.setScale( contextScale );
+//  context.setOffset( contextOffset );
+
+  ++nodesDrawn;
+  return nodesDrawn;
 }
 
 QgsPointCloudLayerRenderer::~QgsPointCloudLayerRenderer() = default;
