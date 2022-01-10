@@ -116,11 +116,14 @@ bool QgsPointCloudLayerRenderer::render()
   mAttributes.push_back( QgsPointCloudAttribute( QStringLiteral( "X" ), QgsPointCloudAttribute::Int32 ) );
   mAttributes.push_back( QgsPointCloudAttribute( QStringLiteral( "Y" ), QgsPointCloudAttribute::Int32 ) );
 
+  if ( !context.renderContext().zRange().isInfinite() ||
+       mRenderer->drawOrder2d() == QgsPointCloudRenderer::DrawOrder2d::OrderBottomToTop ||
+       mRenderer->drawOrder2d() == QgsPointCloudRenderer::DrawOrder2d::OrderTopToBottom )
+    mAttributes.push_back( QgsPointCloudAttribute( QStringLiteral( "Z" ), QgsPointCloudAttribute::Int32 ) );
+
   // collect attributes required by renderer
   QSet< QString > rendererAttributes = mRenderer->usedAttributes( context );
 
-  if ( !context.renderContext().zRange().isInfinite() )
-    rendererAttributes.insert( QStringLiteral( "Z" ) );
 
   for ( const QString &attribute : std::as_const( rendererAttributes ) )
   {
