@@ -182,26 +182,25 @@ bool QgsPointCloudLayerRenderer::render()
   int nodesDrawn = 0;
   bool canceled = false;
 
-  if ( pc->accessType() == QgsPointCloudIndex::AccessType::Local )
+  switch ( mRenderer->drawOrder2d() )
   {
-    switch ( mRenderer->drawOrder2d() )
+    case QgsPointCloudRenderer::DrawOrder::BottomToTop:
+    case QgsPointCloudRenderer::DrawOrder::TopToBottom:
     {
-      case QgsPointCloudRenderer::DrawOrder::BottomToTop:
-      case QgsPointCloudRenderer::DrawOrder::TopToBottom:
-      {
-        nodesDrawn += renderNodesSorted( nodes, pc, context, request, canceled, mRenderer->drawOrder2d() );
-        QgsDebugMsg( QStringLiteral( "%1" ).arg( mRenderer->drawOrder2d() ) );
-        break;
-      }
-      case QgsPointCloudRenderer::DrawOrder::Unchanged:
+      nodesDrawn += renderNodesSorted( nodes, pc, context, request, canceled, mRenderer->drawOrder2d() );
+      break;
+    }
+    case QgsPointCloudRenderer::DrawOrder::Unchanged:
+    {
+      if ( pc->accessType() == QgsPointCloudIndex::AccessType::Local )
       {
         nodesDrawn += renderNodesSync( nodes, pc, context, request, canceled );
       }
+      else if ( pc->accessType() == QgsPointCloudIndex::AccessType::Remote )
+      {
+        nodesDrawn += renderNodesAsync( nodes, pc, context, request, canceled );
+      }
     }
-  }
-  else if ( pc->accessType() == QgsPointCloudIndex::AccessType::Remote )
-  {
-    nodesDrawn += renderNodesAsync( nodes, pc, context, request, canceled );
   }
 
 #ifdef QGISDEBUG
