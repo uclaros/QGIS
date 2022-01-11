@@ -101,9 +101,9 @@ QgsPointCloudRendererPropertiesWidget::QgsPointCloudRendererPropertiesWidget( Qg
   connect( mPointSizeSpinBox, qOverload<double>( &QgsDoubleSpinBox::valueChanged ), this, &QgsPointCloudRendererPropertiesWidget::emitWidgetChanged );
   connect( mPointSizeUnitWidget, &QgsUnitSelectionWidget::changed, this, &QgsPointCloudRendererPropertiesWidget::emitWidgetChanged );
 
-  mDrawOrderComboBox->addItem( tr( "Leave unchanged" ), QgsPointCloudRenderer::OrderUnchanged );
-  mDrawOrderComboBox->addItem( tr( "Bottom to top" ), QgsPointCloudRenderer::OrderBottomToTop );
-  mDrawOrderComboBox->addItem( tr( "Top to bottom" ), QgsPointCloudRenderer::OrderTopToBottom );
+  mDrawOrderComboBox->addItem( tr( "Default" ), QgsPointCloudRenderer::Unchanged );
+  mDrawOrderComboBox->addItem( tr( "Bottom to top" ), QgsPointCloudRenderer::BottomToTop );
+  mDrawOrderComboBox->addItem( tr( "Top to bottom" ), QgsPointCloudRenderer::TopToBottom );
 
   mMaxErrorUnitWidget->setUnits( QgsUnitTypes::RenderUnitList() << QgsUnitTypes::RenderMillimeters << QgsUnitTypes::RenderMetersInMapUnits << QgsUnitTypes::RenderMapUnits << QgsUnitTypes::RenderPixels
                                  << QgsUnitTypes::RenderPoints << QgsUnitTypes::RenderInches );
@@ -189,7 +189,7 @@ void QgsPointCloudRendererPropertiesWidget::apply()
 
   mLayer->renderer()->setMaximumScreenError( mMaxErrorSpinBox->value() );
   mLayer->renderer()->setMaximumScreenErrorUnit( mMaxErrorUnitWidget->unit() );
-  mLayer->renderer()->setDrawOrder2d( static_cast< QgsPointCloudRenderer::DrawOrder2d >( mDrawOrderComboBox->currentData().toInt() ) );
+  mLayer->renderer()->setDrawOrder2d( static_cast< QgsPointCloudRenderer::DrawOrder >( mDrawOrderComboBox->currentData().toInt() ) );
 }
 
 void QgsPointCloudRendererPropertiesWidget::rendererChanged()

@@ -275,11 +275,11 @@ class CORE_EXPORT QgsPointCloudRenderer
     /**
      * Pointcloud rendering order for 2d views
      */
-    enum DrawOrder2d
+    enum DrawOrder
     {
-      OrderUnchanged, //!< Draw points in the order they are stored
-      OrderBottomToTop, //!< Draw points with larger Z values last
-      OrderTopToBottom, //!< Draw points with larger Z values first
+      Unchanged, //!< Draw points in the order they are stored
+      BottomToTop, //!< Draw points with larger Z values last
+      TopToBottom, //!< Draw points with larger Z values first
     };
 
     /**
@@ -451,14 +451,14 @@ class CORE_EXPORT QgsPointCloudRenderer
      *
      * \see setDrawOrder2d()
      */
-    DrawOrder2d drawOrder2d() const;
+    DrawOrder drawOrder2d() const;
 
     /**
      * Sets the drawing \a order used by the renderer for drawing points.
      *
      * \see drawOrder2d()
      */
-    void setDrawOrder2d( DrawOrder2d order );
+    void setDrawOrder2d( DrawOrder order );
 
     /**
      * Returns the symbol used by the renderer for drawing points.
@@ -616,7 +616,7 @@ class CORE_EXPORT QgsPointCloudRenderer
 
     PointSymbol mPointSymbol = Square;
     int mPainterPenWidth = 1;
-    DrawOrder2d mDrawOrder2d = OrderUnchanged;
+    DrawOrder mDrawOrder2d = Unchanged;
 };
 
 #endif // QGSPOINTCLOUDRENDERER_H

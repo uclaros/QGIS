@@ -117,8 +117,8 @@ bool QgsPointCloudLayerRenderer::render()
   mAttributes.push_back( QgsPointCloudAttribute( QStringLiteral( "Y" ), QgsPointCloudAttribute::Int32 ) );
 
   if ( !context.renderContext().zRange().isInfinite() ||
-       mRenderer->drawOrder2d() == QgsPointCloudRenderer::DrawOrder2d::OrderBottomToTop ||
-       mRenderer->drawOrder2d() == QgsPointCloudRenderer::DrawOrder2d::OrderTopToBottom )
+       mRenderer->drawOrder2d() == QgsPointCloudRenderer::DrawOrder::BottomToTop ||
+       mRenderer->drawOrder2d() == QgsPointCloudRenderer::DrawOrder::TopToBottom )
     mAttributes.push_back( QgsPointCloudAttribute( QStringLiteral( "Z" ), QgsPointCloudAttribute::Int32 ) );
 
   // collect attributes required by renderer
@@ -186,14 +186,14 @@ bool QgsPointCloudLayerRenderer::render()
   {
     switch ( mRenderer->drawOrder2d() )
     {
-      case QgsPointCloudRenderer::DrawOrder2d::OrderBottomToTop:
-      case QgsPointCloudRenderer::DrawOrder2d::OrderTopToBottom:
+      case QgsPointCloudRenderer::DrawOrder::BottomToTop:
+      case QgsPointCloudRenderer::DrawOrder::TopToBottom:
       {
         nodesDrawn += renderNodesSorted( nodes, pc, context, request, canceled, mRenderer->drawOrder2d() );
         QgsDebugMsg( QStringLiteral( "%1" ).arg( mRenderer->drawOrder2d() ) );
         break;
       }
-      case QgsPointCloudRenderer::DrawOrder2d::OrderUnchanged:
+      case QgsPointCloudRenderer::DrawOrder::Unchanged:
       {
         nodesDrawn += renderNodesSync( nodes, pc, context, request, canceled );
       }
@@ -358,6 +358,89 @@ int QgsPointCloudLayerRenderer::renderNodesAsync( const QVector<IndexedPointClou
   return nodesDrawn;
 }
 
+int QgsPointCloudLayerRenderer::renderNodesSorted( const QVector<IndexedPointCloudNode> &nodes, QgsPointCloudIndex *pc, QgsPointCloudRenderContext &context, QgsPointCloudRequest &request, bool &canceled, QgsPointCloudRenderer::DrawOrder order )
+{
+  int blockCount = 0;
+  int pointCount = 0;
+
+  QgsVector3D blockScale;
+  QgsVector3D blockOffset;
+  QgsPointCloudAttributeCollection blockAttributes;
+  int recordSize;
+
+  // We'll collect byte array data from all blocks
+  QByteArray allByteArrays;
+  // And pairs of byte array start positions paired with their Z values for sorting
+  QVector<QPair<int, qint32>> allPairs;
+
+  for ( const IndexedPointCloudNode &n : nodes )
+  {
+    if ( context.renderContext().renderingStopped() )
+    {
+      QgsDebugMsgLevel( "canceled", 2 );
+      canceled = true;
+      break;
+    }
+    std::unique_ptr<QgsPointCloudBlock> block( pc->nodeData( n, request ) );
+
+    if ( !block )
+      continue;
+
+    blockScale = block->scale();
+    blockOffset = block->offset();
+    blockAttributes = block->attributes();
+    const char *ptr = block->data();
+
+    context.setScale( block->scale() );
+    context.setOffset( block->offset() );
+    context.setAttributes( block->attributes() );
+
+    recordSize = context.pointRecordSize();
+    int zOffset = context.zOffset();
+    for ( int i = 0; i < block->pointCount(); ++i )
+    {
+      const qint32 iz = *reinterpret_cast<const qint32 * >( ptr + i * recordSize + zOffset );
+      allPairs.append( qMakePair( pointCount, iz ) );
+      allByteArrays.append( ptr + i * recordSize, recordSize );
+      ++pointCount;
+    }
+    ++blockCount;
+  }
+
+  if ( pointCount == 0 )
+    return 0;
+
+  if ( order == QgsPointCloudRenderer::DrawOrder::BottomToTop )
+    std::sort( allPairs.begin(), allPairs.end(), []( QPair<int, qint32> a, QPair<int, qint32> b ) { return a.second < b.second; } );
+  else if ( order == QgsPointCloudRenderer::DrawOrder::TopToBottom )
+    std::sort( allPairs.begin(), allPairs.end(), []( QPair<int, qint32> a, QPair<int, qint32> b ) { return a.second > b.second; } );
+
+  // Now we can reconstruct a byte array sorted by Z value
+  QByteArray sortedByteArray;
+  for ( QPair<int, qint32> pair : allPairs )
+    sortedByteArray.append( allByteArrays.mid( pair.first * recordSize, recordSize ) );
+
+  std::unique_ptr<QgsPointCloudBlock> bigBlock { new QgsPointCloudBlock( pointCount,
+        blockAttributes,
+        sortedByteArray,
+        blockScale,
+        blockOffset ) };
+
+  QgsVector3D contextScale = context.scale();
+  QgsVector3D contextOffset = context.offset();
+
+  context.setScale( bigBlock->scale() );
+  context.setOffset( bigBlock->offset() );
+  context.setAttributes( bigBlock->attributes() );
+
+  mRenderer->renderBlock( bigBlock.get(), context );
+
+  context.setScale( contextScale );
+  context.setOffset( contextOffset );
+
+  return blockCount;
+}
+
 bool QgsPointCloudLayerRenderer::forceRasterRender() const
 {
   // unless we are using the extent only renderer, point cloud layers should always be rasterized -- we don't want to export points as vectors
@@ -405,88 +488,6 @@ QVector<IndexedPointCloudNode> QgsPointCloudLayerRenderer::traverseTree( const Q
   }
 
   return nodes;
-}
-
-int QgsPointCloudLayerRenderer::renderNodesSorted( const QVector<IndexedPointCloudNode> &nodes, QgsPointCloudIndex *pc, QgsPointCloudRenderContext &context, QgsPointCloudRequest &request, bool &canceled, QgsPointCloudRenderer::DrawOrder2d order )
-{
-  int blockCount = 0;
-  int pointCount = 0;
-
-  std::unique_ptr<QgsPointCloudBlock> bigBlock;
-  QgsVector3D blockScale;
-  QgsVector3D blockOffset;
-  QgsPointCloudAttributeCollection blockAttributes;
-  int recordSize;
-
-  QVector<QPair<int, qint32>> allPairs;
-  QByteArray allByteArrays;
-
-  for ( const IndexedPointCloudNode &n : nodes )
-  {
-    if ( context.renderContext().renderingStopped() )
-    {
-      QgsDebugMsgLevel( "canceled", 2 );
-      canceled = true;
-      break;
-    }
-    std::unique_ptr<QgsPointCloudBlock> block( pc->nodeData( n, request ) );
-
-    if ( !block )
-      continue;
-
-    blockScale = block->scale();
-    blockOffset = block->offset();
-    blockAttributes = block->attributes();
-    const char *ptr = block->data();
-
-
-    context.setScale( block->scale() );
-    context.setOffset( block->offset() );
-    context.setAttributes( block->attributes() );
-
-    recordSize = context.pointRecordSize();
-    int zOffset = context.zOffset();
-    for ( int i = 0; i < block->pointCount(); ++i )
-    {
-      const qint32 iz = *reinterpret_cast<const qint32 * >( ptr + i * recordSize + zOffset );
-      allPairs.append( qMakePair( pointCount, iz ) );
-      allByteArrays.append( ptr + i * recordSize, recordSize );
-      ++pointCount;
-    }
-    ++blockCount;
-  }
-
-  if ( pointCount == 0 )
-    return 0;
-  if ( order == QgsPointCloudRenderer::DrawOrder2d::OrderBottomToTop )
-    std::sort( allPairs.begin(), allPairs.end(), []( QPair<int, qint32> a, QPair<int, qint32> b ) { return a.second < b.second; } );
-  if ( order == QgsPointCloudRenderer::DrawOrder2d::OrderTopToBottom )
-    std::sort( allPairs.begin(), allPairs.end(), []( QPair<int, qint32> a, QPair<int, qint32> b ) { return a.second > b.second; } );
-
-  QByteArray sortedByteArray;
-  for ( auto pair : allPairs )
-    sortedByteArray.append( allByteArrays.mid( pair.first * recordSize, recordSize ) );
-
-  bigBlock.reset( new QgsPointCloudBlock( pointCount,
-                                          blockAttributes,
-                                          sortedByteArray,
-                                          blockScale,
-                                          blockOffset ) );
-
-  QgsVector3D contextScale = context.scale();
-  QgsVector3D contextOffset = context.offset();
-
-  context.setScale( bigBlock->scale() );
-  context.setOffset( bigBlock->offset() );
-
-  context.setAttributes( bigBlock->attributes() );
-
-  mRenderer->renderBlock( bigBlock.get(), context );
-
-  context.setScale( contextScale );
-  context.setOffset( contextOffset );
-
-  return blockCount;
 }
 
 QgsPointCloudLayerRenderer::~QgsPointCloudLayerRenderer() = default;

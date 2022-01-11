@@ -174,7 +174,7 @@ void QgsPointCloudRenderer::restoreCommonProperties( const QDomElement &element,
   mMaximumScreenError = element.attribute( QStringLiteral( "maximumScreenError" ), QStringLiteral( "0.3" ) ).toDouble();
   mMaximumScreenErrorUnit = QgsUnitTypes::decodeRenderUnit( element.attribute( QStringLiteral( "maximumScreenErrorUnit" ), QStringLiteral( "MM" ) ) );
   mPointSymbol = static_cast< PointSymbol >( element.attribute( QStringLiteral( "pointSymbol" ), QStringLiteral( "0" ) ).toInt() );
-  mDrawOrder2d = static_cast< DrawOrder2d >( element.attribute( QStringLiteral( "drawOrder2d" ), QStringLiteral( "0" ) ).toInt() );
+  mDrawOrder2d = static_cast< DrawOrder >( element.attribute( QStringLiteral( "drawOrder2d" ), QStringLiteral( "0" ) ).toInt() );
 }
 
 void QgsPointCloudRenderer::saveCommonProperties( QDomElement &element, const QgsReadWriteContext & ) const
@@ -199,12 +199,12 @@ void QgsPointCloudRenderer::setPointSymbol( PointSymbol symbol )
   mPointSymbol = symbol;
 }
 
-QgsPointCloudRenderer::DrawOrder2d QgsPointCloudRenderer::drawOrder2d() const
+QgsPointCloudRenderer::DrawOrder QgsPointCloudRenderer::drawOrder2d() const
 {
   return mDrawOrder2d;
 }
 
-void QgsPointCloudRenderer::setDrawOrder2d( DrawOrder2d order )
+void QgsPointCloudRenderer::setDrawOrder2d( DrawOrder order )
 {
   mDrawOrder2d = order;
 }
