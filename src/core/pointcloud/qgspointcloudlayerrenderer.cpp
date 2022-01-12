@@ -370,7 +370,7 @@ int QgsPointCloudLayerRenderer::renderNodesSorted( const QVector<IndexedPointClo
   // We'll collect byte array data from all blocks
   QByteArray allByteArrays;
   // And pairs of byte array start positions paired with their Z values for sorting
-  QVector<QPair<int, qint32>> allPairs;
+  QVector<QPair<int, double>> allPairs;
 
   for ( const IndexedPointCloudNode &n : nodes )
   {
@@ -385,9 +385,20 @@ int QgsPointCloudLayerRenderer::renderNodesSorted( const QVector<IndexedPointClo
     if ( !block )
       continue;
 
-    blockScale = block->scale();
-    blockOffset = block->offset();
-    blockAttributes = block->attributes();
+    // Individual nodes may have different offset values than the root node
+    // we'll calculate the differences and translate x,y,z values to use the root node's offset
+    QgsVector3D offsetDifference = QgsVector3D( 0, 0, 0 );
+    if ( blockCount == 0 )
+    {
+      blockScale = block->scale();
+      blockOffset = block->offset();
+      blockAttributes = block->attributes();
+    }
+    else
+    {
+      offsetDifference = blockOffset - block->offset();
+    }
+
     const char *ptr = block->data();
 
     context.setScale( block->scale() );
@@ -395,12 +406,39 @@ int QgsPointCloudLayerRenderer::renderNodesSorted( const QVector<IndexedPointClo
     context.setAttributes( block->attributes() );
 
     recordSize = context.pointRecordSize();
-    int zOffset = context.zOffset();
+
     for ( int i = 0; i < block->pointCount(); ++i )
     {
-      const qint32 iz = *reinterpret_cast<const qint32 * >( ptr + i * recordSize + zOffset );
-      allPairs.append( qMakePair( pointCount, iz ) );
       allByteArrays.append( ptr + i * recordSize, recordSize );
+
+      // Calculate the translated values only for axes that have a different offset
+      if ( offsetDifference.x() != 0 )
+      {
+        qint32 ix = *reinterpret_cast< const qint32 * >( ptr + i * recordSize + context.xOffset() );
+        const double dx = ix * context.scale().x() - offsetDifference.x();
+        ix = dx / context.scale().x();
+        const char *xPtr = reinterpret_cast< const char * >( &ix );
+        allByteArrays.replace( pointCount * recordSize + context.xOffset(), 4, QByteArray( xPtr, 4 ) );
+      }
+      if ( offsetDifference.y() != 0 )
+      {
+        qint32 iy = *reinterpret_cast< const qint32 * >( ptr + i * recordSize + context.yOffset() );
+        const double dy = iy * context.scale().y() - offsetDifference.y();
+        iy = dy / context.scale().y();
+        const char *yPtr = reinterpret_cast< const char * >( &iy );
+        allByteArrays.replace( pointCount * recordSize + context.yOffset(), 4, QByteArray( yPtr, 4 ) );
+      }
+      // We need the Z value regardless of the node's offset
+      qint32 iz = *reinterpret_cast< const qint32 * >( ptr + i * recordSize + context.zOffset() );
+      if ( offsetDifference.z() != 0 )
+      {
+        const double dz = iz * context.scale().z() - offsetDifference.z();
+        iz = dz / context.scale().z();
+        const char *zPtr = reinterpret_cast< const char * >( &iz );
+        allByteArrays.replace( pointCount * recordSize + context.zOffset(), 4, QByteArray( zPtr, 4 ) );
+      }
+      allPairs.append( qMakePair( pointCount, double( iz ) + block->offset().z() ) );
+
       ++pointCount;
     }
     ++blockCount;
@@ -410,13 +448,13 @@ int QgsPointCloudLayerRenderer::renderNodesSorted( const QVector<IndexedPointClo
     return 0;
 
   if ( order == QgsPointCloudRenderer::DrawOrder::BottomToTop )
-    std::sort( allPairs.begin(), allPairs.end(), []( QPair<int, qint32> a, QPair<int, qint32> b ) { return a.second < b.second; } );
+    std::sort( allPairs.begin(), allPairs.end(), []( QPair<int, double> a, QPair<int, double> b ) { return a.second < b.second; } );
   else if ( order == QgsPointCloudRenderer::DrawOrder::TopToBottom )
-    std::sort( allPairs.begin(), allPairs.end(), []( QPair<int, qint32> a, QPair<int, qint32> b ) { return a.second > b.second; } );
+    std::sort( allPairs.begin(), allPairs.end(), []( QPair<int, double> a, QPair<int, double> b ) { return a.second > b.second; } );
 
   // Now we can reconstruct a byte array sorted by Z value
   QByteArray sortedByteArray;
-  for ( QPair<int, qint32> pair : allPairs )
+  for ( QPair<int, double> pair : allPairs )
     sortedByteArray.append( allByteArrays.mid( pair.first * recordSize, recordSize ) );
 
   std::unique_ptr<QgsPointCloudBlock> bigBlock { new QgsPointCloudBlock( pointCount,
