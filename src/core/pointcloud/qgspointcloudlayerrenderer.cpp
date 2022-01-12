@@ -415,16 +415,14 @@ int QgsPointCloudLayerRenderer::renderNodesSorted( const QVector<IndexedPointClo
       if ( offsetDifference.x() != 0 )
       {
         qint32 ix = *reinterpret_cast< const qint32 * >( ptr + i * recordSize + context.xOffset() );
-        const double dx = ix * context.scale().x() - offsetDifference.x();
-        ix = dx / context.scale().x();
+        ix -= std::lround( offsetDifference.x() / context.scale().x() );
         const char *xPtr = reinterpret_cast< const char * >( &ix );
         allByteArrays.replace( pointCount * recordSize + context.xOffset(), 4, QByteArray( xPtr, 4 ) );
       }
       if ( offsetDifference.y() != 0 )
       {
         qint32 iy = *reinterpret_cast< const qint32 * >( ptr + i * recordSize + context.yOffset() );
-        const double dy = iy * context.scale().y() - offsetDifference.y();
-        iy = dy / context.scale().y();
+        iy -= std::lround( offsetDifference.y() / context.scale().y() );
         const char *yPtr = reinterpret_cast< const char * >( &iy );
         allByteArrays.replace( pointCount * recordSize + context.yOffset(), 4, QByteArray( yPtr, 4 ) );
       }
@@ -432,8 +430,7 @@ int QgsPointCloudLayerRenderer::renderNodesSorted( const QVector<IndexedPointClo
       qint32 iz = *reinterpret_cast< const qint32 * >( ptr + i * recordSize + context.zOffset() );
       if ( offsetDifference.z() != 0 )
       {
-        const double dz = iz * context.scale().z() - offsetDifference.z();
-        iz = dz / context.scale().z();
+        iz -= std::lround( offsetDifference.z() / context.scale().z() );
         const char *zPtr = reinterpret_cast< const char * >( &iz );
         allByteArrays.replace( pointCount * recordSize + context.zOffset(), 4, QByteArray( zPtr, 4 ) );
       }
