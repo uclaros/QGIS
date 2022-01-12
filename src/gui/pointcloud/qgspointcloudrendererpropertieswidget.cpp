@@ -101,9 +101,9 @@ QgsPointCloudRendererPropertiesWidget::QgsPointCloudRendererPropertiesWidget( Qg
   connect( mPointSizeSpinBox, qOverload<double>( &QgsDoubleSpinBox::valueChanged ), this, &QgsPointCloudRendererPropertiesWidget::emitWidgetChanged );
   connect( mPointSizeUnitWidget, &QgsUnitSelectionWidget::changed, this, &QgsPointCloudRendererPropertiesWidget::emitWidgetChanged );
 
-  mDrawOrderComboBox->addItem( tr( "Default" ), QgsPointCloudRenderer::Unchanged );
-  mDrawOrderComboBox->addItem( tr( "Bottom to top" ), QgsPointCloudRenderer::BottomToTop );
-  mDrawOrderComboBox->addItem( tr( "Top to bottom" ), QgsPointCloudRenderer::TopToBottom );
+  mDrawOrderComboBox->addItem( tr( "Default" ), QgsPointCloudRenderer::DrawOrder::Unchanged );
+  mDrawOrderComboBox->addItem( tr( "Bottom to top" ), QgsPointCloudRenderer::DrawOrder::BottomToTop );
+  mDrawOrderComboBox->addItem( tr( "Top to bottom" ), QgsPointCloudRenderer::DrawOrder::TopToBottom );
 
   mMaxErrorUnitWidget->setUnits( QgsUnitTypes::RenderUnitList() << QgsUnitTypes::RenderMillimeters << QgsUnitTypes::RenderMetersInMapUnits << QgsUnitTypes::RenderMapUnits << QgsUnitTypes::RenderPixels
                                  << QgsUnitTypes::RenderPoints << QgsUnitTypes::RenderInches );
