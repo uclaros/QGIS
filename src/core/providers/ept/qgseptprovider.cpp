@@ -27,6 +27,7 @@
 #include "qgsproviderutils.h"
 
 #include <QFileInfo>
+#include <QRegularExpression>
 
 ///@cond PRIVATE
 
@@ -192,9 +193,24 @@ bool QgsEptProviderMetadata::uriIsBlocklisted( const QString &uri ) const
 
 QVariantMap QgsEptProviderMetadata::decodeUri( const QString &uri ) const
 {
-  const QString path = uri;
+  QString path = uri;
+  QString subset;
+  if ( path.contains( '|' ) )
+  {
+    QRegularExpressionMatch match;
+    const QRegularExpression subsetRegex( QStringLiteral( "\\|subset=((?:.*[\r\n]*)*)\\Z" ) );
+    match = subsetRegex.match( path );
+    if ( match.hasMatch() )
+    {
+      subset = match.captured( 1 );
+      path = path.remove( match.capturedStart( 0 ), match.capturedLength( 0 ) );
+    }
+  }
+
   QVariantMap uriComponents;
   uriComponents.insert( QStringLiteral( "path" ), path );
+  if ( !subset.isEmpty() )
+    uriComponents.insert( QStringLiteral( "subset" ), subset );
   return uriComponents;
 }
 
@@ -222,6 +238,10 @@ QgsProviderMetadata::ProviderCapabilities QgsEptProviderMetadata::providerCapabi
 QString QgsEptProviderMetadata::encodeUri( const QVariantMap &parts ) const
 {
   const QString path = parts.value( QStringLiteral( "path" ) ).toString();
+  const QString subset = parts.value( QStringLiteral( "subset" ) ).toString();
+  QString uri = path;
+  if ( !subset.isEmpty() )
+    uri += QStringLiteral( "|subset=%1" ).arg( subset );
   return path;
 }
 
