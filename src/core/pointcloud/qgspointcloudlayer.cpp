@@ -667,6 +667,7 @@ bool QgsPointCloudLayer::setSubsetString( const QString &subset )
   bool res = mDataProvider->setSubsetString( subset );
   if ( res )
   {
+    mDataSource = mDataProvider->dataSourceUri();
     emit subsetStringChanged();
     triggerRepaint();
   }
