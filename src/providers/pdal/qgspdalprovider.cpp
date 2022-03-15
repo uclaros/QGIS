@@ -35,6 +35,7 @@
 #include <QQueue>
 #include <QFileInfo>
 #include <QDir>
+#include <QRegularExpression>
 
 #define PROVIDER_KEY QStringLiteral( "pdal" )
 #define PROVIDER_DESCRIPTION QStringLiteral( "PDAL point cloud data provider" )
@@ -52,7 +53,9 @@ QgsPdalProvider::QgsPdalProvider(
   if ( QgsApplication::profiler()->groupIsActive( QStringLiteral( "projectload" ) ) )
     profile = std::make_unique< QgsScopedRuntimeProfile >( tr( "Open data source" ), QStringLiteral( "projectload" ) );
 
-  mIsValid = load( uri );
+  const QVariantMap parts = QgsPdalProviderMetadata().decodeUri( uri );
+  const QString path = parts.value( QStringLiteral( "path" ) ).toString();
+  mIsValid = load( path );
   loadIndex( );
 }
 
@@ -130,12 +133,16 @@ void QgsPdalProvider::loadIndex( )
   if ( mIndex->isValid() )
     return;
 
-  const QString outputDir = _outdir( dataSourceUri() );
+  const QVariantMap parts = QgsPdalProviderMetadata().decodeUri( dataSourceUri() );
+  const QString subset = parts.value( QStringLiteral( "subset" ) ).toString();
+  const QString outputDir = _outdir( parts.value( QStringLiteral( "path" ) ).toString() );
   const QString outEptJson = QStringLiteral( "%1/ept.json" ).arg( outputDir );
   const QFileInfo fi( outEptJson );
   if ( fi.isFile() )
   {
     mIndex->load( outEptJson );
+    if ( !subset.isEmpty() )
+      setSubsetString( subset );
   }
   else
   {
@@ -291,9 +298,24 @@ QgsProviderMetadata::ProviderMetadataCapabilities QgsPdalProviderMetadata::capab
 
 QVariantMap QgsPdalProviderMetadata::decodeUri( const QString &uri ) const
 {
-  const QString path = uri;
+  QString path = uri;
+  QString subset;
+  if ( path.contains( '|' ) )
+  {
+    QRegularExpressionMatch match;
+    const QRegularExpression subsetRegex( QStringLiteral( "\\|subset=((?:.*[\r\n]*)*)\\Z" ) );
+    match = subsetRegex.match( path );
+    if ( match.hasMatch() )
+    {
+      subset = match.captured( 1 );
+      path = path.remove( match.capturedStart( 0 ), match.capturedLength( 0 ) );
+    }
+  }
+
   QVariantMap uriComponents;
   uriComponents.insert( QStringLiteral( "path" ), path );
+  if ( !subset.isEmpty() )
+    uriComponents.insert( QStringLiteral( "subset" ), subset );
   return uriComponents;
 }
 
@@ -360,8 +382,11 @@ QgsProviderMetadata::ProviderCapabilities QgsPdalProviderMetadata::providerCapab
 
 QString QgsPdalProviderMetadata::encodeUri( const QVariantMap &parts ) const
 {
-  const QString path = parts.value( QStringLiteral( "path" ) ).toString();
-  return path;
+  QString uri = parts.value( QStringLiteral( "path" ) ).toString();
+  const QString subset = parts.value( QStringLiteral( "subset" ) ).toString();
+  if ( !subset.isEmpty() )
+    uri += QStringLiteral( "|subset=%1" ).arg( subset );
+  return uri;
 }
 
 QGISEXTERN QgsProviderMetadata *providerMetadataFactory()

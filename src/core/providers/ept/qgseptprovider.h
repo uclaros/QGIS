@@ -58,14 +58,9 @@ class QgsEptProvider: public QgsPointCloudDataProvider
     void loadIndex( ) override;
     void generateIndex( ) override;
     PointCloudIndexGenerationState indexingState( ) override { return PointCloudIndexGenerationState::Indexed; }
-    bool supportsSubsetString() const override { return true; }
-    QString subsetString() const override;
-    bool setSubsetString( const QString &subset, bool updateFeatureCount = false ) override;
 
   private:
     std::unique_ptr<QgsPointCloudIndex> mIndex;
-    //! String used to define a subset of the layer
-    QString mSubsetString;
 };
 
 class QgsEptProviderMetadata : public QgsProviderMetadata

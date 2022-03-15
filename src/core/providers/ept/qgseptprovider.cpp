@@ -109,8 +109,7 @@ void QgsEptProvider::loadIndex( )
   if ( mIndex->isValid() )
     return;
 
-
-  QVariantMap parts = QgsEptProviderMetadata().decodeUri( dataSourceUri() );
+  const QVariantMap parts = QgsEptProviderMetadata().decodeUri( dataSourceUri() );
   mIndex->load( parts.value( QStringLiteral( "path" ) ).toString() );
   QString subset = parts.value( QStringLiteral( "subset" ) ).toString();
   if ( !subset.isEmpty() )
@@ -130,42 +129,6 @@ void QgsEptProvider::generateIndex()
 QVariant QgsEptProvider::metadataStatistic( const QString &attribute, QgsStatisticalSummary::Statistic statistic ) const
 {
   return mIndex->metadataStatistic( attribute, statistic );
-}
-
-bool QgsEptProvider::setSubsetString( const QString &subset, bool updateFeatureCount )
-{
-  Q_UNUSED( updateFeatureCount )
-  const auto i = index();
-  if ( !i )
-    return false;
-
-  if ( !i->setSubsetString( subset ) )
-    return false;
-  mSubsetString = subset;
-  emit dataChanged();
-
-
-
-  const QString u = dataSourceUri();
-  QVariantMap parts = QgsEptProviderMetadata().decodeUri( u );
-
-  //parts.insert( QStringLiteral( "path" ), u );
-  if ( !mSubsetString.isEmpty() )
-  {
-    parts.insert( QStringLiteral( "subset" ), mSubsetString );
-  }
-
-  QString uri1 = QgsEptProviderMetadata().encodeUri( parts );
-  if ( uri1 != dataSourceUri() )
-  {
-    setDataSourceUri( uri1 );
-  }
-  return true;
-}
-
-QString QgsEptProvider::subsetString() const
-{
-  return mSubsetString;
 }
 
 
@@ -279,9 +242,8 @@ QgsProviderMetadata::ProviderCapabilities QgsEptProviderMetadata::providerCapabi
 
 QString QgsEptProviderMetadata::encodeUri( const QVariantMap &parts ) const
 {
-  const QString path = parts.value( QStringLiteral( "path" ) ).toString();
+  QString uri = parts.value( QStringLiteral( "path" ) ).toString();
   const QString subset = parts.value( QStringLiteral( "subset" ) ).toString();
-  QString uri = path;
   if ( !subset.isEmpty() )
     uri += QStringLiteral( "|subset=%1" ).arg( subset );
   return uri;

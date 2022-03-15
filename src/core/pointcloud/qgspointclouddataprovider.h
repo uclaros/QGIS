@@ -308,9 +308,9 @@ class CORE_EXPORT QgsPointCloudDataProvider: public QgsDataProvider
     % End
 #endif
 
-//    bool supportsSubsetString() const override { return true; }
-//    QString subsetString() const override;
-//    bool setSubsetString( const QString &subset, bool updateFeatureCount = false ) override;
+    bool supportsSubsetString() const override { return true; }
+    QString subsetString() const override;
+    bool setSubsetString( const QString &subset, bool updateFeatureCount = false ) override;
 
     /**
      * Returns the map of LAS classification code to untranslated string value, corresponding to the ASPRS Standard
@@ -352,8 +352,8 @@ class CORE_EXPORT QgsPointCloudDataProvider: public QgsDataProvider
   private:
     QVector<IndexedPointCloudNode> traverseTree( const QgsPointCloudIndex *pc, IndexedPointCloudNode n, double maxError, double nodeError, const QgsGeometry &extentGeometry, const QgsDoubleRange &extentZRange );
 
-//    //! String used to define a subset of the layer
-//    QString mSubsetString;
+    //! String used to define a subset of the layer
+    QString mSubsetString;
 };
 
 #endif // QGSMESHDATAPROVIDER_H

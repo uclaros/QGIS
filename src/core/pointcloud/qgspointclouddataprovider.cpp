@@ -21,6 +21,8 @@
 #include "qgsgeometry.h"
 #include "qgspointcloudrequest.h"
 #include "qgsgeometryengine.h"
+#include "qgsproviderregistry.h"
+#include "qgsprovidermetadata.h"
 #include <mutex>
 #include <QDebug>
 #include <QtMath>
@@ -299,21 +301,35 @@ QVector<IndexedPointCloudNode> QgsPointCloudDataProvider::traverseTree(
   return nodes;
 }
 
-//bool QgsPointCloudDataProvider::setSubsetString( const QString &subset, bool updateFeatureCount )
-//{
-//  Q_UNUSED( updateFeatureCount )
-//  const auto i = index();
-//  if ( !i )
-//    return false;
+bool QgsPointCloudDataProvider::setSubsetString( const QString &subset, bool updateFeatureCount )
+{
+  Q_UNUSED( updateFeatureCount )
+  const auto i = index();
+  if ( !i )
+    return false;
 
-//  if ( !i->setSubsetString( subset ) )
-//    return false;
-//  mSubsetString = subset;
-//  emit dataChanged();
-//  return true;
-//}
+  if ( !i->setSubsetString( subset ) )
+    return false;
+  mSubsetString = subset;
+  emit dataChanged();
+  const QgsProviderMetadata *metadata = QgsProviderRegistry::instance()->providerMetadata( name() );
+  if ( !metadata )
+    return true;
 
-//QString QgsPointCloudDataProvider::subsetString() const
-//{
-//  return mSubsetString;
-//}
+  QVariantMap parts = metadata->decodeUri( dataSourceUri() );
+  if ( !mSubsetString.isEmpty() )
+  {
+    parts.insert( QStringLiteral( "subset" ), mSubsetString );
+  }
+  QString uri = metadata->encodeUri( parts );
+  if ( uri != dataSourceUri() )
+  {
+    setDataSourceUri( uri );
+  }
+  return true;
+}
+
+QString QgsPointCloudDataProvider::subsetString() const
+{
+  return mSubsetString;
+}
