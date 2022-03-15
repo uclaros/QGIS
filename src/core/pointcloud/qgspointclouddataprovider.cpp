@@ -321,7 +321,7 @@ bool QgsPointCloudDataProvider::setSubsetString( const QString &subset, bool upd
   {
     parts.insert( QStringLiteral( "subset" ), mSubsetString );
   }
-  QString uri = metadata->encodeUri( parts );
+  const QString uri = metadata->encodeUri( parts );
   if ( uri != dataSourceUri() )
   {
     setDataSourceUri( uri );

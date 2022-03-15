@@ -111,7 +111,7 @@ void QgsEptProvider::loadIndex( )
 
   const QVariantMap parts = QgsEptProviderMetadata().decodeUri( dataSourceUri() );
   mIndex->load( parts.value( QStringLiteral( "path" ) ).toString() );
-  QString subset = parts.value( QStringLiteral( "subset" ) ).toString();
+  const QString subset = parts.value( QStringLiteral( "subset" ) ).toString();
   if ( !subset.isEmpty() )
     setSubsetString( subset );
 }
