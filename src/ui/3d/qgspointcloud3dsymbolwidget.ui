@@ -199,6 +199,21 @@
       <number>1</number>
      </property>
      <widget class="QWidget" name="noRendererPage"/>
+     <widget class="QWidget" name="follow2dRendererPage">
+      <widget class="QLabel" name="label_8">
+       <property name="geometry">
+        <rect>
+         <x>160</x>
+         <y>130</y>
+         <width>311</width>
+         <height>21</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>See 2d renderer settings</string>
+       </property>
+      </widget>
+     </widget>
      <widget class="QWidget" name="singleColorRendererPage">
       <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,1">
        <property name="leftMargin">
@@ -589,6 +604,12 @@ enhancement</string>
  </widget>
  <customwidgets>
   <customwidget>
+   <class>QgsCollapsibleGroupBox</class>
+   <extends>QGroupBox</extends>
+   <header>qgscollapsiblegroupbox.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
    <class>QgsDoubleSpinBox</class>
    <extends>QDoubleSpinBox</extends>
    <header>qgsdoublespinbox.h</header>
@@ -609,12 +630,6 @@ enhancement</string>
    <class>QgsPointCloudAttributeComboBox</class>
    <extends>QComboBox</extends>
    <header>qgspointcloudattributecombobox.h</header>
-  </customwidget>
-  <customwidget>
-   <class>QgsCollapsibleGroupBox</class>
-   <extends>QGroupBox</extends>
-   <header>qgscollapsiblegroupbox.h</header>
-   <container>1</container>
   </customwidget>
  </customwidgets>
  <tabstops>

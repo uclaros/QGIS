@@ -121,6 +121,7 @@ void QgsPointCloud3DSymbol::copyBaseSettings( QgsAbstract3DSymbol *destination )
   pcDestination->mHorizontalTriangleFilter = mHorizontalTriangleFilter;
   pcDestination->mVerticalFilterThreshold = mVerticalFilterThreshold;
   pcDestination->mVerticalTriangleFilter = mVerticalTriangleFilter;
+  pcDestination->mConvertedFrom2dSymbol = mConvertedFrom2dSymbol;
 }
 
 // QgsSingleColorPointCloud3DSymbol

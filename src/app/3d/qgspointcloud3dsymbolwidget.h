@@ -92,6 +92,8 @@ class QgsPointCloud3DSymbolWidget : public QWidget, private Ui::QgsPointCloud3DS
     void setMinMaxValue( const QgsContrastEnhancement *ce, QLineEdit *minEdit, QLineEdit *maxEdit );
 
     double mPointBudget = 1000000;
+
+    bool mConvertedFrom2DSymbol = false;
 };
 
 #endif // QGSPOINTCLOUD3DSYMBOLWIDGET_H

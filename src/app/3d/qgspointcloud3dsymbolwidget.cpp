@@ -26,6 +26,7 @@
 #include "qgsdoublevalidator.h"
 #include "qgspointcloudclassifiedrendererwidget.h"
 #include "qgspointcloudlayerelevationproperties.h"
+#include "qgs3dapputils.h"
 
 QgsPointCloud3DSymbolWidget::QgsPointCloud3DSymbolWidget( QgsPointCloudLayer *layer, QgsPointCloud3DSymbol *symbol, QWidget *parent )
   : QWidget( parent )
@@ -48,6 +49,7 @@ QgsPointCloud3DSymbolWidget::QgsPointCloud3DSymbolWidget( QgsPointCloudLayer *la
   mSingleColorBtn->setColor( QColor( 0, 0, 255 ) ); // default color
 
   mRenderingStyleComboBox->addItem( tr( "No Rendering" ), QString() );
+  mRenderingStyleComboBox->addItem( tr( "Follow 2d renderer" ), QStringLiteral( "2d" ) );
   mRenderingStyleComboBox->addItem( QgsApplication::getThemeIcon( QStringLiteral( "styleicons/singlecolor.svg" ) ), tr( "Single Color" ), QStringLiteral( "single-color" ) );
   mRenderingStyleComboBox->addItem( QgsApplication::getThemeIcon( QStringLiteral( "styleicons/singlebandpseudocolor.svg" ) ), tr( "Attribute by Ramp" ), QStringLiteral( "color-ramp" ) );
   mRenderingStyleComboBox->addItem( QgsApplication::getThemeIcon( QStringLiteral( "styleicons/multibandcolor.svg" ) ), tr( "RGB" ), QStringLiteral( "rgb" ) );
@@ -154,15 +156,24 @@ void QgsPointCloud3DSymbolWidget::setSymbol( QgsPointCloud3DSymbol *symbol )
   mVerticalTriangleCheckBox->setChecked( symbol->verticalTriangleFilter() );
   mVerticalTriangleThresholdSpinBox->setValue( symbol->verticalFilterThreshold() );
 
+  if ( symbol->convertedFrom2dSymbol() )
+  {
+    mRenderingStyleComboBox->setCurrentIndex( 1 );
+    mStackedWidget->setCurrentIndex( 1 );
+    mConvertedFrom2DSymbol = true;
+    mBlockChangedSignals--;
+    return;
+  }
+
   if ( symbol->symbolType() == QLatin1String( "single-color" ) )
   {
-    mStackedWidget->setCurrentIndex( 1 );
+    mStackedWidget->setCurrentIndex( 2 );
     QgsSingleColorPointCloud3DSymbol *symb = dynamic_cast<QgsSingleColorPointCloud3DSymbol *>( symbol );
     mSingleColorBtn->setColor( symb->singleColor() );
   }
   else if ( symbol->symbolType() == QLatin1String( "color-ramp" ) )
   {
-    mStackedWidget->setCurrentIndex( 2 );
+    mStackedWidget->setCurrentIndex( 3 );
     QgsColorRampPointCloud3DSymbol *symb = dynamic_cast<QgsColorRampPointCloud3DSymbol *>( symbol );
 
     // we will be restoring the existing ramp classes -- we don't want to regenerate any automatically!
@@ -178,7 +189,7 @@ void QgsPointCloud3DSymbolWidget::setSymbol( QgsPointCloud3DSymbol *symbol )
   }
   else if ( symbol->symbolType() == QLatin1String( "rgb" ) )
   {
-    mStackedWidget->setCurrentIndex( 3 );
+    mStackedWidget->setCurrentIndex( 4 );
 
     QgsRgbPointCloud3DSymbol *symb = dynamic_cast<QgsRgbPointCloud3DSymbol *>( symbol );
     mRedAttributeComboBox->setAttribute( symb->redAttribute() );
@@ -193,7 +204,7 @@ void QgsPointCloud3DSymbolWidget::setSymbol( QgsPointCloud3DSymbol *symbol )
   }
   else if ( symbol->symbolType() == QLatin1String( "classification" ) )
   {
-    mStackedWidget->setCurrentIndex( 4 );
+    mStackedWidget->setCurrentIndex( 5 );
     QgsClassificationPointCloud3DSymbol *symb = dynamic_cast<QgsClassificationPointCloud3DSymbol *>( symbol );
     mClassifiedRendererWidget->setFromCategories( symb->categoriesList(), symb->attribute() );
   }
@@ -215,6 +226,23 @@ QgsPointCloud3DSymbol *QgsPointCloud3DSymbolWidget::symbol() const
 {
   QgsPointCloud3DSymbol *retSymb = nullptr;
   const QString symbolType = mRenderingStyleComboBox->currentData().toString();
+
+  if ( mConvertedFrom2DSymbol )
+  {
+    std::unique_ptr< QgsPointCloudLayer3DRenderer > renderer3D = Qgs3DAppUtils::convert2dPointCloudRendererTo3d( mLayer->renderer() );
+    if ( renderer3D )
+    {
+      const QString symbolType = renderer3D->symbol()->symbolType();
+      if ( symbolType == QLatin1String( "color-ramp" ) )
+        retSymb = dynamic_cast<QgsColorRampPointCloud3DSymbol *>( renderer3D->symbol()->clone() );
+      if ( symbolType == QLatin1String( "rgb" ) )
+        retSymb = dynamic_cast<QgsRgbPointCloud3DSymbol *>( renderer3D->symbol()->clone() );
+      if ( symbolType == QLatin1String( "classification" ) )
+        retSymb = dynamic_cast<QgsClassificationPointCloud3DSymbol *>( renderer3D->symbol()->clone() );
+      if ( retSymb )
+        retSymb->setConvertedFrom2dSymbol( true );
+    }
+  }
 
   if ( symbolType == QLatin1String( "single-color" ) )
   {
@@ -401,7 +429,12 @@ void QgsPointCloud3DSymbolWidget::onRenderingStyleChanged()
   if ( mLayer )
   {
     const QString newSymbolType = mRenderingStyleComboBox->currentData().toString();
-    if ( newSymbolType == QLatin1String( "color-ramp" ) && mLayer->renderer()->type() == QLatin1String( "ramp" ) )
+    mConvertedFrom2DSymbol = false;
+    if ( newSymbolType == QLatin1String( "2d" ) )
+    {
+      mConvertedFrom2DSymbol = true;
+    }
+    else if ( newSymbolType == QLatin1String( "color-ramp" ) && mLayer->renderer()->type() == QLatin1String( "ramp" ) )
     {
       const QgsPointCloudAttributeByRampRenderer *renderer2d = dynamic_cast< const QgsPointCloudAttributeByRampRenderer * >( mLayer->renderer() );
       mBlockChangedSignals++;
