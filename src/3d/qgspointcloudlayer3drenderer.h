@@ -225,7 +225,7 @@ class _3D_EXPORT QgsPointCloudLayer3DRendererMetadata : public Qgs3DRendererAbst
  *
  * \since QGIS 3.18
  */
-class _3D_EXPORT QgsPointCloudLayer3DRenderer : public QgsAbstract3DRenderer
+class _3D_EXPORT QgsPointCloudLayer3DRenderer : public QgsAbstract3DRenderer, public QObject
 {
   public:
     //! Takes ownership of the symbol object
@@ -294,6 +294,8 @@ class _3D_EXPORT QgsPointCloudLayer3DRenderer : public QgsAbstract3DRenderer
      * Sets the maximum number of points to be rendered in the scene
      */
     void setPointRenderingBudget( int budget );
+
+    void syncTo2DRenderer();
 
   private:
     QgsMapLayerRef mLayerRef; //!< Layer used to extract mesh data from

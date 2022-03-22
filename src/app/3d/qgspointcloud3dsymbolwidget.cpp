@@ -229,9 +229,10 @@ QgsPointCloud3DSymbol *QgsPointCloud3DSymbolWidget::symbol() const
 
   if ( mConvertedFrom2DSymbol )
   {
-    std::unique_ptr< QgsPointCloudLayer3DRenderer > renderer3D = Qgs3DAppUtils::convert2dPointCloudRendererTo3d( mLayer->renderer() );
+    QgsPointCloudLayer3DRenderer *renderer3D = static_cast<QgsPointCloudLayer3DRenderer *>( mLayer->renderer3D() );
     if ( renderer3D )
     {
+      renderer3D->syncTo2DRenderer();
       const QString symbolType = renderer3D->symbol()->symbolType();
       if ( symbolType == QLatin1String( "color-ramp" ) )
         retSymb = dynamic_cast<QgsColorRampPointCloud3DSymbol *>( renderer3D->symbol()->clone() );
