@@ -139,21 +139,15 @@ QgsPointCloud3DSymbolWidget::QgsPointCloud3DSymbolWidget( QgsPointCloudLayer *la
 void QgsPointCloud3DSymbolWidget::setSymbol( QgsPointCloud3DSymbol *symbol )
 {
   mBlockChangedSignals++;
-  if ( !symbol )
+  if ( symbol )
   {
-    mRenderingStyleComboBox->setCurrentIndex( 0 );
-    mStackedWidget->setCurrentIndex( 0 );
-    mBlockChangedSignals--;
-    return;
+    mPointSizeSpinBox->setValue( symbol->pointSize() );
+    mTriangulateGroupBox->setChecked( symbol->renderAsTriangles() );
+    mHorizontalTriangleCheckBox->setChecked( symbol->horizontalTriangleFilter() );
+    mHorizontalTriangleThresholdSpinBox->setValue( symbol->horizontalFilterThreshold() );
+    mVerticalTriangleCheckBox->setChecked( symbol->verticalTriangleFilter() );
+    mVerticalTriangleThresholdSpinBox->setValue( symbol->verticalFilterThreshold() );
   }
-
-  mRenderingStyleComboBox->setCurrentIndex( mRenderingStyleComboBox->findData( symbol->symbolType() ) );
-  mPointSizeSpinBox->setValue( symbol->pointSize() );
-  mTriangulateGroupBox->setChecked( symbol->renderAsTriangles() );
-  mHorizontalTriangleCheckBox->setChecked( symbol->horizontalTriangleFilter() );
-  mHorizontalTriangleThresholdSpinBox->setValue( symbol->horizontalFilterThreshold() );
-  mVerticalTriangleCheckBox->setChecked( symbol->verticalTriangleFilter() );
-  mVerticalTriangleThresholdSpinBox->setValue( symbol->verticalFilterThreshold() );
 
   QgsPointCloudLayer3DRenderer *renderer3D = static_cast<QgsPointCloudLayer3DRenderer *>( mLayer->renderer3D() );
   if ( renderer3D && renderer3D->syncedTo2DRenderer() )
@@ -163,6 +157,16 @@ void QgsPointCloud3DSymbolWidget::setSymbol( QgsPointCloud3DSymbol *symbol )
     mBlockChangedSignals--;
     return;
   }
+
+  if ( !symbol )
+  {
+    mRenderingStyleComboBox->setCurrentIndex( 0 );
+    mStackedWidget->setCurrentIndex( 0 );
+    mBlockChangedSignals--;
+    return;
+  }
+
+  mRenderingStyleComboBox->setCurrentIndex( mRenderingStyleComboBox->findData( symbol->symbolType() ) );
 
   if ( symbol->symbolType() == QLatin1String( "single-color" ) )
   {

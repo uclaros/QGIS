@@ -296,11 +296,24 @@ class _3D_EXPORT QgsPointCloudLayer3DRenderer : public QObject, public QgsAbstra
      */
     void setPointRenderingBudget( int budget );
 
+    /**
+     * Sets whether the 3d renderer should automatically update its symbol to match the layer's 2d renderer
+     *
+     * \since QGIS 3.26
+     */
     void setSyncedTo2DRenderer( bool synced ) { mSyncedTo2DRenderer = synced; };
+
+    /**
+     * Returns whether the 3d renderer should automatically update its symbol to match the layer's 2d renderer
+     *
+     * \since QGIS 3.26
+     */
     bool syncedTo2DRenderer() const { return mSyncedTo2DRenderer; };
-    void syncTo2DRenderer();
 
   private:
+    //! Applies a symbol copied from the layer's 2d renderer
+    void setSymbolFrom2DRenderer();
+
     QgsMapLayerRef mLayerRef; //!< Layer used to extract mesh data from
     std::unique_ptr< QgsPointCloud3DSymbol > mSymbol;
     double mMaximumScreenError = 1.0;

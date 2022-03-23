@@ -105,7 +105,7 @@ void QgsPointCloudLayer3DRenderer::setLayer( QgsPointCloudLayer *layer )
   mLayerRef = QgsMapLayerRef( layer );
   if ( layer && mSyncedTo2DRenderer )
   {
-    connect( layer, &QgsMapLayer::rendererChanged, this, &QgsPointCloudLayer3DRenderer::syncTo2DRenderer );
+    connect( layer, &QgsMapLayer::rendererChanged, this, &QgsPointCloudLayer3DRenderer::setSymbolFrom2DRenderer );
   }
 }
 
@@ -155,10 +155,10 @@ void QgsPointCloudLayer3DRenderer::setSymbol( QgsPointCloud3DSymbol *symbol )
   QgsPointCloudLayer *pcl = layer();
   if ( !pcl )
     return;
-  disconnect( pcl, &QgsMapLayer::rendererChanged, this, &QgsPointCloudLayer3DRenderer::syncTo2DRenderer );
+  disconnect( pcl, &QgsMapLayer::rendererChanged, this, &QgsPointCloudLayer3DRenderer::setSymbolFrom2DRenderer );
   if ( mSyncedTo2DRenderer )
   {
-    connect( pcl, &QgsMapLayer::rendererChanged, this, &QgsPointCloudLayer3DRenderer::syncTo2DRenderer );
+    connect( pcl, &QgsMapLayer::rendererChanged, this, &QgsPointCloudLayer3DRenderer::setSymbolFrom2DRenderer );
   }
 }
 
@@ -240,7 +240,7 @@ void QgsPointCloudLayer3DRenderer::setPointRenderingBudget( int budget )
   mPointBudget = budget;
 }
 
-void QgsPointCloudLayer3DRenderer::syncTo2DRenderer()
+void QgsPointCloudLayer3DRenderer::setSymbolFrom2DRenderer()
 {
   const QgsPointCloudRenderer *renderer = layer()->renderer();
   if ( !renderer )

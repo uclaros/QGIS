@@ -140,6 +140,9 @@
         <property name="checkable">
          <bool>true</bool>
         </property>
+        <property name="checked">
+         <bool>false</bool>
+        </property>
         <layout class="QGridLayout" name="gridLayout_8">
          <property name="leftMargin">
           <number>0</number>
@@ -196,23 +199,31 @@
    <item row="2" column="0" colspan="3">
     <widget class="QStackedWidget" name="mStackedWidget">
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="noRendererPage"/>
      <widget class="QWidget" name="follow2dRendererPage">
-      <widget class="QLabel" name="label_8">
-       <property name="geometry">
-        <rect>
-         <x>160</x>
-         <y>130</y>
-         <width>311</width>
-         <height>21</height>
-        </rect>
+      <layout class="QGridLayout" name="gridLayout_9">
+       <property name="leftMargin">
+        <number>0</number>
        </property>
-       <property name="text">
-        <string>See 2d renderer settings</string>
+       <property name="topMargin">
+        <number>0</number>
        </property>
-      </widget>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_8">
+         <property name="text">
+          <string>See 2d renderer settings</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </widget>
      <widget class="QWidget" name="singleColorRendererPage">
       <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,1">
