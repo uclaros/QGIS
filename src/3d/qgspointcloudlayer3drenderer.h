@@ -296,6 +296,8 @@ class _3D_EXPORT QgsPointCloudLayer3DRenderer : public QObject, public QgsAbstra
      */
     void setPointRenderingBudget( int budget );
 
+    void setSyncedTo2DRenderer( bool synced ) { mSyncedTo2DRenderer = synced; };
+    bool syncedTo2DRenderer() const { return mSyncedTo2DRenderer; };
     void syncTo2DRenderer();
 
   private:
@@ -304,6 +306,7 @@ class _3D_EXPORT QgsPointCloudLayer3DRenderer : public QObject, public QgsAbstra
     double mMaximumScreenError = 1.0;
     bool mShowBoundingBoxes = false;
     int mPointBudget = 1000000;
+    bool mSyncedTo2DRenderer = false;
 
   private:
 #ifdef SIP_RUN

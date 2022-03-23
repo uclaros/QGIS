@@ -103,6 +103,10 @@ QgsPointCloudLayer3DRenderer::QgsPointCloudLayer3DRenderer( )
 void QgsPointCloudLayer3DRenderer::setLayer( QgsPointCloudLayer *layer )
 {
   mLayerRef = QgsMapLayerRef( layer );
+  if ( layer && mSyncedTo2DRenderer )
+  {
+    connect( layer, &QgsMapLayer::rendererChanged, this, &QgsPointCloudLayer3DRenderer::syncTo2DRenderer );
+  }
 }
 
 QgsPointCloudLayer *QgsPointCloudLayer3DRenderer::layer() const
@@ -125,6 +129,7 @@ QgsPointCloudLayer3DRenderer *QgsPointCloudLayer3DRenderer::clone() const
   }
   r->setMaximumScreenError( mMaximumScreenError );
   r->setShowBoundingBoxes( mShowBoundingBoxes );
+  r->setSyncedTo2DRenderer( mSyncedTo2DRenderer );
   return r;
 }
 
@@ -147,14 +152,13 @@ Qt3DCore::QEntity *QgsPointCloudLayer3DRenderer::createEntity( const Qgs3DMapSet
 void QgsPointCloudLayer3DRenderer::setSymbol( QgsPointCloud3DSymbol *symbol )
 {
   mSymbol.reset( symbol );
-  auto l = layer();
-  if ( !l )
+  QgsPointCloudLayer *pcl = layer();
+  if ( !pcl )
     return;
-  disconnect( l, &QgsMapLayer::rendererChanged, this, &QgsPointCloudLayer3DRenderer::syncTo2DRenderer );
-  if ( mSymbol->convertedFrom2dSymbol() )
+  disconnect( pcl, &QgsMapLayer::rendererChanged, this, &QgsPointCloudLayer3DRenderer::syncTo2DRenderer );
+  if ( mSyncedTo2DRenderer )
   {
-//    syncTo2DRenderer();
-    connect( l, &QgsMapLayer::rendererChanged, this, &QgsPointCloudLayer3DRenderer::syncTo2DRenderer );
+    connect( pcl, &QgsMapLayer::rendererChanged, this, &QgsPointCloudLayer3DRenderer::syncTo2DRenderer );
   }
 }
 
@@ -168,6 +172,7 @@ void QgsPointCloudLayer3DRenderer::writeXml( QDomElement &elem, const QgsReadWri
   elem.setAttribute( QStringLiteral( "max-screen-error" ), maximumScreenError() );
   elem.setAttribute( QStringLiteral( "show-bounding-boxes" ), showBoundingBoxes() ? QStringLiteral( "1" ) : QStringLiteral( "0" ) );
   elem.setAttribute( QStringLiteral( "point-budget" ), mPointBudget );
+  elem.setAttribute( QStringLiteral( "sync-to-2d-renderer" ), mSyncedTo2DRenderer ? QStringLiteral( "1" ) : QStringLiteral( "0" ) );
 
   QDomElement elemSymbol = doc.createElement( QStringLiteral( "symbol" ) );
   if ( mSymbol )
@@ -188,6 +193,7 @@ void QgsPointCloudLayer3DRenderer::readXml( const QDomElement &elem, const QgsRe
   mShowBoundingBoxes = elem.attribute( QStringLiteral( "show-bounding-boxes" ), QStringLiteral( "0" ) ).toInt();
   mMaximumScreenError = elem.attribute( QStringLiteral( "max-screen-error" ), QStringLiteral( "1.0" ) ).toDouble();
   mPointBudget = elem.attribute( QStringLiteral( "point-budget" ), QStringLiteral( "1000000" ) ).toInt();
+  mSyncedTo2DRenderer = elem.attribute( QStringLiteral( "sync-to-2d-renderer" ), QStringLiteral( "0" ) ).toInt();
 
   if ( symbolType == QLatin1String( "single-color" ) )
     mSymbol.reset( new QgsSingleColorPointCloud3DSymbol );
@@ -236,7 +242,7 @@ void QgsPointCloudLayer3DRenderer::setPointRenderingBudget( int budget )
 
 void QgsPointCloudLayer3DRenderer::syncTo2DRenderer()
 {
-  auto renderer = layer()->renderer();
+  const QgsPointCloudRenderer *renderer = layer()->renderer();
   if ( !renderer )
     return;
 
@@ -272,7 +278,7 @@ void QgsPointCloudLayer3DRenderer::syncTo2DRenderer()
     symbol->setAttribute( renderer2d->attribute() );
     symbol->setCategoriesList( renderer2d->categories() );
   }
-  if ( symbol3D )
+  if ( symbol3D && mSymbol )
   {
     symbol3D->setPointSize( mSymbol->pointSize() );
     symbol3D->setRenderAsTriangles( mSymbol->renderAsTriangles() );
@@ -280,9 +286,8 @@ void QgsPointCloudLayer3DRenderer::syncTo2DRenderer()
     symbol3D->setHorizontalFilterThreshold( mSymbol->horizontalFilterThreshold() );
     symbol3D->setVerticalTriangleFilter( mSymbol->verticalTriangleFilter() );
     symbol3D->setVerticalFilterThreshold( mSymbol->verticalFilterThreshold() );
-    symbol3D->setConvertedFrom2dSymbol( mSymbol->convertedFrom2dSymbol() );
-    setSymbol( symbol3D.release() );
-    layer()->renderer3DChanged();
   }
+  setSymbol( symbol3D.release() );
+  layer()->request3DUpdate();
   return;
 }

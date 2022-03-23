@@ -102,6 +102,7 @@ Returns the maximum number of points that will be rendered to the scene
 Sets the maximum number of points to be rendered in the scene
 %End
 
+    void setSyncedTo2DRenderer( bool synced );
     void syncTo2DRenderer();
 
   private:

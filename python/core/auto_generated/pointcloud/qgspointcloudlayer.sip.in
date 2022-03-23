@@ -155,7 +155,6 @@ Returns the string used to define a subset of the layer.
 .. versionadded:: 3.26
 %End
 
-    void setSync3DRendererTo2DRenderer( bool enable );
   signals:
 
     void subsetStringChanged();

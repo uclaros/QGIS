@@ -97,7 +97,6 @@ void QgsPointCloud3DSymbol::writeBaseXml( QDomElement &elem, const QgsReadWriteC
   elem.setAttribute( QStringLiteral( "horizontal-filter-threshold" ), mHorizontalFilterThreshold );
   elem.setAttribute( QStringLiteral( "vertical-triangle-filter" ), mVerticalTriangleFilter ? 1 : 0 );
   elem.setAttribute( QStringLiteral( "vertical-filter-threshold" ), mVerticalFilterThreshold );
-  elem.setAttribute( QStringLiteral( "converted-from-2d-symbol" ), mConvertedFrom2dSymbol ? 1 : 0 );
 }
 
 void QgsPointCloud3DSymbol::readBaseXml( const QDomElement &elem, const QgsReadWriteContext &context )
@@ -110,7 +109,6 @@ void QgsPointCloud3DSymbol::readBaseXml( const QDomElement &elem, const QgsReadW
   mHorizontalFilterThreshold = elem.attribute( QStringLiteral( "horizontal-filter-threshold" ), QStringLiteral( "10.0" ) ).toFloat();
   mVerticalTriangleFilter = elem.attribute( QStringLiteral( "vertical-triangle-filter" ), QStringLiteral( "0" ) ).toInt() == 1;
   mVerticalFilterThreshold = elem.attribute( QStringLiteral( "vertical-filter-threshold" ), QStringLiteral( "10.0" ) ).toFloat();
-  mConvertedFrom2dSymbol = elem.attribute( QStringLiteral( "converted-from-2d-symbol" ), QStringLiteral( "0" ) ).toInt() == 1;
 }
 
 void QgsPointCloud3DSymbol::copyBaseSettings( QgsAbstract3DSymbol *destination ) const
@@ -123,7 +121,6 @@ void QgsPointCloud3DSymbol::copyBaseSettings( QgsAbstract3DSymbol *destination )
   pcDestination->mHorizontalTriangleFilter = mHorizontalTriangleFilter;
   pcDestination->mVerticalFilterThreshold = mVerticalFilterThreshold;
   pcDestination->mVerticalTriangleFilter = mVerticalTriangleFilter;
-  pcDestination->mConvertedFrom2dSymbol = mConvertedFrom2dSymbol;
 }
 
 // QgsSingleColorPointCloud3DSymbol

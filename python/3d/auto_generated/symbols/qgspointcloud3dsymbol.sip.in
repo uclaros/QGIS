@@ -152,11 +152,7 @@ than this threshold value will not be rendered, see :py:func:`~QgsPointCloud3DSy
 .. versionadded:: 3.26
 %End
 
-    void setConvertedFrom2dSymbol( bool converted );
-    bool convertedFrom2dSymbol() const;
-
   protected:
-
 
     void writeBaseXml( QDomElement &elem, const QgsReadWriteContext &context ) const;
 %Docstring

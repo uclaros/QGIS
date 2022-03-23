@@ -163,9 +163,6 @@ class _3D_EXPORT QgsPointCloud3DSymbol : public QgsAbstract3DSymbol SIP_ABSTRACT
      */
     void setVerticalFilterThreshold( float verticalFilterThreshold );
 
-    void setConvertedFrom2dSymbol( bool converted ) { mConvertedFrom2dSymbol = converted; }
-    bool convertedFrom2dSymbol() const { return mConvertedFrom2dSymbol; }
-
   protected:
     float mPointSize = 2.0;
     bool mRenderAsTriangles = false;
@@ -173,8 +170,6 @@ class _3D_EXPORT QgsPointCloud3DSymbol : public QgsAbstract3DSymbol SIP_ABSTRACT
     float mHorizontalFilterThreshold = 10.0;
     bool mVerticalTriangleFilter = false;
     float mVerticalFilterThreshold = 10.0;
-
-    bool mConvertedFrom2dSymbol = false;
 
     /**
      * Writes symbol configuration of this class to the given DOM element
