@@ -73,10 +73,10 @@ void QgsPointCloudLayer3DRendererWidget::apply()
   {
     r->setSymbol( mWidgetPointCloudSymbol->symbol() );
   }
-  if ( r->symbol()->convertedFrom2dSymbol() )
-  {
-    connect( mLayer, &QgsMapLayer::rendererChanged, r, &QgsPointCloudLayer3DRenderer::syncTo2DRenderer );
-  }
+//  if ( r->symbol()->convertedFrom2dSymbol() )
+//  {
+//    connect( mLayer, &QgsMapLayer::rendererChanged, r, &QgsPointCloudLayer3DRenderer::syncTo2DRenderer );
+//  }
   mLayer->setRenderer3D( r );
 }
 

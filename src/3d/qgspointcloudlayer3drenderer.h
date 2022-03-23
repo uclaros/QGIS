@@ -225,8 +225,9 @@ class _3D_EXPORT QgsPointCloudLayer3DRendererMetadata : public Qgs3DRendererAbst
  *
  * \since QGIS 3.18
  */
-class _3D_EXPORT QgsPointCloudLayer3DRenderer : public QgsAbstract3DRenderer, public QObject
+class _3D_EXPORT QgsPointCloudLayer3DRenderer : public QObject, public QgsAbstract3DRenderer
 {
+    Q_OBJECT
   public:
     //! Takes ownership of the symbol object
     explicit QgsPointCloudLayer3DRenderer();

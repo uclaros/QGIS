@@ -147,6 +147,15 @@ Qt3DCore::QEntity *QgsPointCloudLayer3DRenderer::createEntity( const Qgs3DMapSet
 void QgsPointCloudLayer3DRenderer::setSymbol( QgsPointCloud3DSymbol *symbol )
 {
   mSymbol.reset( symbol );
+  auto l = layer();
+  if ( !l )
+    return;
+  disconnect( l, &QgsMapLayer::rendererChanged, this, &QgsPointCloudLayer3DRenderer::syncTo2DRenderer );
+  if ( mSymbol->convertedFrom2dSymbol() )
+  {
+//    syncTo2DRenderer();
+    connect( l, &QgsMapLayer::rendererChanged, this, &QgsPointCloudLayer3DRenderer::syncTo2DRenderer );
+  }
 }
 
 void QgsPointCloudLayer3DRenderer::writeXml( QDomElement &elem, const QgsReadWriteContext &context ) const

@@ -186,6 +186,8 @@ class CORE_EXPORT QgsPointCloudLayer : public QgsMapLayer
      */
     QString subsetString() const;
 
+    void setSync3DRendererTo2DRenderer( bool enable ) { mSync3DRendererTo2DRenderer = enable; };
+    bool sync3DRendererTo2DRenderer() { return mSync3DRendererTo2DRenderer; };
   signals:
 
     /**
@@ -212,6 +214,8 @@ class CORE_EXPORT QgsPointCloudLayer : public QgsMapLayer
     std::unique_ptr<QgsPointCloudRenderer> mRenderer;
 
     QgsPointCloudLayerElevationProperties *mElevationProperties = nullptr;
+
+    bool mSync3DRendererTo2DRenderer = false;
 };
 
 

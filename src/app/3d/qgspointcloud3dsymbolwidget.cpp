@@ -26,7 +26,6 @@
 #include "qgsdoublevalidator.h"
 #include "qgspointcloudclassifiedrendererwidget.h"
 #include "qgspointcloudlayerelevationproperties.h"
-#include "qgs3dapputils.h"
 
 QgsPointCloud3DSymbolWidget::QgsPointCloud3DSymbolWidget( QgsPointCloudLayer *layer, QgsPointCloud3DSymbol *symbol, QWidget *parent )
   : QWidget( parent )
