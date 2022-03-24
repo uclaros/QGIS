@@ -108,6 +108,7 @@ Sets whether the 3d renderer should automatically update its symbol to match the
 
 .. versionadded:: 3.26
 %End
+
     bool syncedTo2DRenderer() const;
 %Docstring
 Returns whether the 3d renderer should automatically update its symbol to match the layer's 2d renderer

@@ -103,10 +103,7 @@ QgsPointCloudLayer3DRenderer::QgsPointCloudLayer3DRenderer( )
 void QgsPointCloudLayer3DRenderer::setLayer( QgsPointCloudLayer *layer )
 {
   mLayerRef = QgsMapLayerRef( layer );
-  if ( layer && mSyncedTo2DRenderer )
-  {
-    connect( layer, &QgsMapLayer::rendererChanged, this, &QgsPointCloudLayer3DRenderer::setSymbolFrom2DRenderer );
-  }
+  setSyncedTo2DRenderer( mSyncedTo2DRenderer );
 }
 
 QgsPointCloudLayer *QgsPointCloudLayer3DRenderer::layer() const
@@ -152,14 +149,6 @@ Qt3DCore::QEntity *QgsPointCloudLayer3DRenderer::createEntity( const Qgs3DMapSet
 void QgsPointCloudLayer3DRenderer::setSymbol( QgsPointCloud3DSymbol *symbol )
 {
   mSymbol.reset( symbol );
-  QgsPointCloudLayer *pcl = layer();
-  if ( !pcl )
-    return;
-  disconnect( pcl, &QgsMapLayer::rendererChanged, this, &QgsPointCloudLayer3DRenderer::setSymbolFrom2DRenderer );
-  if ( mSyncedTo2DRenderer )
-  {
-    connect( pcl, &QgsMapLayer::rendererChanged, this, &QgsPointCloudLayer3DRenderer::setSymbolFrom2DRenderer );
-  }
 }
 
 void QgsPointCloudLayer3DRenderer::writeXml( QDomElement &elem, const QgsReadWriteContext &context ) const
@@ -208,6 +197,7 @@ void QgsPointCloudLayer3DRenderer::readXml( const QDomElement &elem, const QgsRe
 
   if ( mSymbol )
     mSymbol->readXml( elemSymbol, context );
+  setSyncedTo2DRenderer( mSyncedTo2DRenderer );
 }
 
 void QgsPointCloudLayer3DRenderer::resolveReferences( const QgsProject &project )
@@ -239,6 +229,23 @@ void QgsPointCloudLayer3DRenderer::setPointRenderingBudget( int budget )
 {
   mPointBudget = budget;
 }
+
+void QgsPointCloudLayer3DRenderer::setSyncedTo2DRenderer( bool synced )
+{
+  mSyncedTo2DRenderer = synced;
+  QgsPointCloudLayer *pcl = layer();
+  if ( !pcl )
+    return;
+  if ( synced )
+  {
+    setSymbolFrom2DRenderer();
+    connect( pcl, &QgsMapLayer::rendererChanged, this, &QgsPointCloudLayer3DRenderer::setSymbolFrom2DRenderer, Qt::UniqueConnection );
+  }
+  else
+  {
+    disconnect( pcl, &QgsMapLayer::rendererChanged, this, &QgsPointCloudLayer3DRenderer::setSymbolFrom2DRenderer );
+  }
+};
 
 void QgsPointCloudLayer3DRenderer::setSymbolFrom2DRenderer()
 {
@@ -289,5 +296,4 @@ void QgsPointCloudLayer3DRenderer::setSymbolFrom2DRenderer()
   }
   setSymbol( symbol3D.release() );
   layer()->request3DUpdate();
-  return;
 }

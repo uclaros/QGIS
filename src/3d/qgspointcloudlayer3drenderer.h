@@ -301,7 +301,7 @@ class _3D_EXPORT QgsPointCloudLayer3DRenderer : public QObject, public QgsAbstra
      *
      * \since QGIS 3.26
      */
-    void setSyncedTo2DRenderer( bool synced ) { mSyncedTo2DRenderer = synced; };
+    void setSyncedTo2DRenderer( bool synced );
 
     /**
      * Returns whether the 3d renderer should automatically update its symbol to match the layer's 2d renderer
