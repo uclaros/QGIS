@@ -18,6 +18,7 @@ from qgis.core import (
     QgsPointCloudClassifiedRenderer,
     QgsPointCloudCategory,
     QgsPointCloudRenderer,
+    QgsPointCloudRendererRegistry,
     QgsReadWriteContext,
     QgsRenderContext,
     QgsPointCloudRenderContext,
@@ -134,6 +135,8 @@ class TestQgsPointCloudClassifiedRenderer(unittest.TestCase):
 
         renderer = QgsPointCloudClassifiedRenderer()
         renderer.setAttribute('Classification')
+        categories = QgsPointCloudRendererRegistry.defaultCategories(layer)
+        renderer.setCategories(categories)
         layer.setRenderer(renderer)
 
         layer.renderer().setPointSize(2)
@@ -161,6 +164,8 @@ class TestQgsPointCloudClassifiedRenderer(unittest.TestCase):
 
         renderer = QgsPointCloudClassifiedRenderer()
         renderer.setAttribute('Classification')
+        categories = QgsPointCloudRendererRegistry.defaultCategories(layer)
+        renderer.setCategories(categories)
         layer.setRenderer(renderer)
 
         layer.renderer().setPointSize(2)
@@ -187,6 +192,8 @@ class TestQgsPointCloudClassifiedRenderer(unittest.TestCase):
 
         renderer = QgsPointCloudClassifiedRenderer()
         renderer.setAttribute('Classification')
+        categories = QgsPointCloudRendererRegistry.defaultCategories(layer)
+        renderer.setCategories(categories)
         layer.setRenderer(renderer)
 
         layer.renderer().setPointSize(.15)
@@ -214,6 +221,8 @@ class TestQgsPointCloudClassifiedRenderer(unittest.TestCase):
 
         renderer = QgsPointCloudClassifiedRenderer()
         renderer.setAttribute('Classification')
+        categories = QgsPointCloudRendererRegistry.defaultCategories(layer)
+        renderer.setCategories(categories)
         layer.setRenderer(renderer)
 
         layer.renderer().setPointSize(2)
@@ -242,6 +251,8 @@ class TestQgsPointCloudClassifiedRenderer(unittest.TestCase):
 
         renderer = QgsPointCloudClassifiedRenderer()
         renderer.setAttribute('Classification')
+        categories = QgsPointCloudRendererRegistry.defaultCategories(layer)
+        renderer.setCategories(categories)
         layer.setRenderer(renderer)
 
         layer.renderer().setPointSize(6)
@@ -270,6 +281,8 @@ class TestQgsPointCloudClassifiedRenderer(unittest.TestCase):
 
         renderer = QgsPointCloudClassifiedRenderer()
         renderer.setAttribute('Classification')
+        categories = QgsPointCloudRendererRegistry.defaultCategories(layer)
+        renderer.setCategories(categories)
         layer.setRenderer(renderer)
 
         layer.renderer().setPointSize(6)
@@ -298,6 +311,8 @@ class TestQgsPointCloudClassifiedRenderer(unittest.TestCase):
 
         renderer = QgsPointCloudClassifiedRenderer()
         renderer.setAttribute('Classification')
+        categories = QgsPointCloudRendererRegistry.defaultCategories(layer)
+        renderer.setCategories(categories)
         layer.setRenderer(renderer)
 
         layer.renderer().setPointSize(2)
