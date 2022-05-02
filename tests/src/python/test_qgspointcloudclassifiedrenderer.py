@@ -133,10 +133,8 @@ class TestQgsPointCloudClassifiedRenderer(unittest.TestCase):
         layer = QgsPointCloudLayer(unitTestDataPath() + '/point_clouds/ept/sunshine-coast/ept.json', 'test', 'ept')
         self.assertTrue(layer.isValid())
 
-        renderer = QgsPointCloudClassifiedRenderer()
-        renderer.setAttribute('Classification')
         categories = QgsPointCloudRendererRegistry.defaultCategories(layer)
-        renderer.setCategories(categories)
+        renderer = QgsPointCloudClassifiedRenderer('Classification', categories)
         layer.setRenderer(renderer)
 
         layer.renderer().setPointSize(2)
@@ -162,10 +160,8 @@ class TestQgsPointCloudClassifiedRenderer(unittest.TestCase):
         layer = QgsPointCloudLayer(unitTestDataPath() + '/point_clouds/ept/sunshine-coast/ept.json', 'test', 'ept')
         self.assertTrue(layer.isValid())
 
-        renderer = QgsPointCloudClassifiedRenderer()
-        renderer.setAttribute('Classification')
         categories = QgsPointCloudRendererRegistry.defaultCategories(layer)
-        renderer.setCategories(categories)
+        renderer = QgsPointCloudClassifiedRenderer('Classification', categories)
         layer.setRenderer(renderer)
 
         layer.renderer().setPointSize(2)
@@ -190,10 +186,8 @@ class TestQgsPointCloudClassifiedRenderer(unittest.TestCase):
         layer = QgsPointCloudLayer(unitTestDataPath() + '/point_clouds/ept/sunshine-coast/ept.json', 'test', 'ept')
         self.assertTrue(layer.isValid())
 
-        renderer = QgsPointCloudClassifiedRenderer()
-        renderer.setAttribute('Classification')
         categories = QgsPointCloudRendererRegistry.defaultCategories(layer)
-        renderer.setCategories(categories)
+        renderer = QgsPointCloudClassifiedRenderer('Classification', categories)
         layer.setRenderer(renderer)
 
         layer.renderer().setPointSize(.15)
@@ -219,10 +213,8 @@ class TestQgsPointCloudClassifiedRenderer(unittest.TestCase):
         layer = QgsPointCloudLayer(unitTestDataPath() + '/point_clouds/ept/sunshine-coast/ept.json', 'test', 'ept')
         self.assertTrue(layer.isValid())
 
-        renderer = QgsPointCloudClassifiedRenderer()
-        renderer.setAttribute('Classification')
         categories = QgsPointCloudRendererRegistry.defaultCategories(layer)
-        renderer.setCategories(categories)
+        renderer = QgsPointCloudClassifiedRenderer('Classification', categories)
         layer.setRenderer(renderer)
 
         layer.renderer().setPointSize(2)
@@ -249,10 +241,8 @@ class TestQgsPointCloudClassifiedRenderer(unittest.TestCase):
         layer = QgsPointCloudLayer(unitTestDataPath() + '/point_clouds/ept/sunshine-coast/ept.json', 'test', 'ept')
         self.assertTrue(layer.isValid())
 
-        renderer = QgsPointCloudClassifiedRenderer()
-        renderer.setAttribute('Classification')
         categories = QgsPointCloudRendererRegistry.defaultCategories(layer)
-        renderer.setCategories(categories)
+        renderer = QgsPointCloudClassifiedRenderer('Classification', categories)
         layer.setRenderer(renderer)
 
         layer.renderer().setPointSize(6)
@@ -279,10 +269,8 @@ class TestQgsPointCloudClassifiedRenderer(unittest.TestCase):
         layer = QgsPointCloudLayer(unitTestDataPath() + '/point_clouds/ept/sunshine-coast/ept.json', 'test', 'ept')
         self.assertTrue(layer.isValid())
 
-        renderer = QgsPointCloudClassifiedRenderer()
-        renderer.setAttribute('Classification')
         categories = QgsPointCloudRendererRegistry.defaultCategories(layer)
-        renderer.setCategories(categories)
+        renderer = QgsPointCloudClassifiedRenderer('Classification', categories)
         layer.setRenderer(renderer)
 
         layer.renderer().setPointSize(6)
@@ -309,10 +297,8 @@ class TestQgsPointCloudClassifiedRenderer(unittest.TestCase):
         layer = QgsPointCloudLayer(unitTestDataPath() + '/point_clouds/ept/sunshine-coast/ept.json', 'test', 'ept')
         self.assertTrue(layer.isValid())
 
-        renderer = QgsPointCloudClassifiedRenderer()
-        renderer.setAttribute('Classification')
         categories = QgsPointCloudRendererRegistry.defaultCategories(layer)
-        renderer.setCategories(categories)
+        renderer = QgsPointCloudClassifiedRenderer('Classification', categories)
         layer.setRenderer(renderer)
 
         layer.renderer().setPointSize(2)

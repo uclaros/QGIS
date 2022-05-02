@@ -129,7 +129,7 @@ class CORE_EXPORT QgsPointCloudClassifiedRenderer : public QgsPointCloudRenderer
     /**
      * Constructor for QgsPointCloudClassifiedRenderer.
      */
-    QgsPointCloudClassifiedRenderer();
+    QgsPointCloudClassifiedRenderer( const QString &attrName = QString(), const QgsPointCloudCategoryList &categories = QgsPointCloudCategoryList() );
 
     QString type() const override;
     QgsPointCloudRenderer *clone() const override;
