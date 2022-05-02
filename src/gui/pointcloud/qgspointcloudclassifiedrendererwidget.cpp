@@ -127,6 +127,14 @@ QVariant QgsPointCloudClassifiedRendererModel::data( const QModelIndex &index, i
         }
         case 2:
           return category.label();
+        case 3:
+          const float value = mPercentages.value( category.value() );
+          QString str;
+          if ( value < 0.06 && value != 0 )
+            str = QStringLiteral( "< " ) + QLocale().toString( 0.1, 'f', 1 );
+          else
+            str = QLocale().toString( mPercentages.value( category.value() ), 'f', 1 );
+          return str;
       }
       break;
     }
@@ -145,7 +153,11 @@ QVariant QgsPointCloudClassifiedRendererModel::data( const QModelIndex &index, i
 
     case Qt::TextAlignmentRole:
     {
-      return ( index.column() == 0 ) ? static_cast<Qt::Alignment::Int>( Qt::AlignHCenter ) : static_cast<Qt::Alignment::Int>( Qt::AlignLeft );
+      if ( index.column() == 0 )
+        return static_cast<Qt::Alignment::Int>( Qt::AlignHCenter );
+      if ( index.column() == 3 )
+        return static_cast<Qt::Alignment::Int>( Qt::AlignRight );
+      return static_cast<Qt::Alignment::Int>( Qt::AlignLeft );
     }
 
     case Qt::EditRole:
@@ -207,10 +219,10 @@ bool QgsPointCloudClassifiedRendererModel::setData( const QModelIndex &index, co
 
 QVariant QgsPointCloudClassifiedRendererModel::headerData( int section, Qt::Orientation orientation, int role ) const
 {
-  if ( orientation == Qt::Horizontal && role == Qt::DisplayRole && section >= 0 && section < 3 )
+  if ( orientation == Qt::Horizontal && role == Qt::DisplayRole && section >= 0 && section < 4 )
   {
     QStringList lst;
-    lst << tr( "Color" ) << tr( "Value" ) << tr( "Legend" );
+    lst << tr( "Color" ) << tr( "Value" ) << tr( "Legend" ) << tr( "Percentage" );
     return lst.value( section );
   }
   return QVariant();
@@ -228,7 +240,7 @@ int QgsPointCloudClassifiedRendererModel::rowCount( const QModelIndex &parent ) 
 int QgsPointCloudClassifiedRendererModel::columnCount( const QModelIndex &index ) const
 {
   Q_UNUSED( index )
-  return 3;
+  return 4;
 }
 
 QModelIndex QgsPointCloudClassifiedRendererModel::index( int row, int column, const QModelIndex &parent ) const
@@ -389,6 +401,7 @@ QgsPointCloudClassifiedRendererWidget::QgsPointCloudClassifiedRendererWidget( Qg
     mAttributeComboBox->setLayer( layer );
 
     setFromRenderer( layer->renderer() );
+    updateCategoriesPercentages();
   }
 
   viewCategories->setModel( mModel );
@@ -451,7 +464,10 @@ void QgsPointCloudClassifiedRendererWidget::attributeChanged()
 void QgsPointCloudClassifiedRendererWidget::emitWidgetChanged()
 {
   if ( !mBlockChangedSignal )
+  {
+    updateCategoriesPercentages();
     emit widgetChanged();
+  }
 }
 
 void QgsPointCloudClassifiedRendererWidget::categoriesDoubleClicked( const QModelIndex &idx )
@@ -621,4 +637,20 @@ int QgsPointCloudClassifiedRendererWidget::currentCategoryRow()
   return idx.row();
 }
 
+void QgsPointCloudClassifiedRendererWidget::updateCategoriesPercentages()
+{
+  QMap < int, float > percentages;
+
+  if ( mLayer->dataProvider() )
+  {
+    const int pointCount = mLayer->dataProvider()->pointCount();
+    const QgsPointCloudCategoryList currentCategories = mModel->categories();
+    for ( const QgsPointCloudCategory &category : currentCategories )
+    {
+      int key = category.value();
+      percentages.insert( key, mLayer->dataProvider()->metadataClassStatistic( attribute(), key, QgsStatisticalSummary::Count ).toFloat() / pointCount * 100 );
+    }
+  }
+  mModel->updateCategoriesPercentages( percentages );
+}
 ///@endcond
