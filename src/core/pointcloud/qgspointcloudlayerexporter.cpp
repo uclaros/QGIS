@@ -308,6 +308,9 @@ QgsMapLayer *QgsPointCloudLayerExporter::takeExportedLayer()
       return new QgsVectorLayer( mFilename, fileInfo.completeBaseName(), QStringLiteral( "ogr" ) );
     }
   }
+  // Should never reach here, all exit points should be within the switch statement's cases
+  Q_ASSERT( false );
+  return nullptr;
 }
 
 //
