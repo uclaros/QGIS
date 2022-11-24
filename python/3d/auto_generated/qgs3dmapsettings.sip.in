@@ -667,6 +667,19 @@ This parameter is transient. It is not saved in the project parameters.
 .. versionadded:: 3.26
 %End
 
+    QgsRectangle extent() const;
+%Docstring
+Returns the scene's 2D extent
+
+.. versionadded:: 3.30
+%End
+    void setExtent( const QgsRectangle &extent );
+%Docstring
+Sets the scene's 2D extent
+
+.. versionadded:: 3.30
+%End
+
   signals:
 
     void settingsChanged();
