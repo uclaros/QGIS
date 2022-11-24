@@ -52,11 +52,22 @@ QgsTerrainTileLoader::QgsTerrainTileLoader( QgsTerrainEntity *terrain, QgsChunkN
 #endif
 
   const QgsChunkNodeId nodeId = node->tileId();
-  const QgsRectangle extentTerrainCrs = map.terrainGenerator()->tilingScheme().tileToExtent( nodeId );
-  QgsCoordinateTransform transform = terrain->terrainToMapTransform();
-  transform.setBallparkTransformsAreAppropriate( true );
-  mExtentMapCrs = transform.transformBoundingBox( extentTerrainCrs );
   mTileDebugText = nodeId.text();
+
+  switch ( map.terrainGenerator()->type() )
+  {
+    case QgsTerrainGenerator::Type::Flat:
+      mExtentMapCrs = map.extent();
+      break;
+    case QgsTerrainGenerator::Type::Dem:
+    case QgsTerrainGenerator::Type::Mesh:
+    case QgsTerrainGenerator::Type::Online:
+      const QgsRectangle extentTerrainCrs = map.terrainGenerator()->tilingScheme().tileToExtent( nodeId );
+      QgsCoordinateTransform transform = terrain->terrainToMapTransform();
+      transform.setBallparkTransformsAreAppropriate( true );
+      mExtentMapCrs = transform.transformBoundingBox( extentTerrainCrs );
+      break;
+  }
 }
 
 void QgsTerrainTileLoader::loadTexture()

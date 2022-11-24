@@ -45,6 +45,8 @@ Qt3DCore::QEntity *FlatTerrainChunkLoader::createEntity( Qt3DCore::QEntity *pare
   // QPlaneGeometry by default is 1x1 with mesh resolution QSize(2,2), centered at 0
   // TODO: the geometry could be shared inside Terrain instance (within terrain-generator specific data?)
   mTileGeometry = new Qt3DExtras::QPlaneGeometry;
+  mTileGeometry->setHeight( terrain()->map3D().extent().height() );
+  mTileGeometry->setWidth( terrain()->map3D().extent().width() );
 
   Qt3DRender::QGeometryRenderer *mesh = new Qt3DRender::QGeometryRenderer;
   mesh->setGeometry( mTileGeometry ); // takes ownership if the component has no parent
@@ -54,20 +56,6 @@ Qt3DCore::QEntity *FlatTerrainChunkLoader::createEntity( Qt3DCore::QEntity *pare
 
   const Qgs3DMapSettings &map = terrain()->map3D();
   createTextureComponent( entity, map.isTerrainShadingEnabled(), map.terrainShadingMaterial(), !map.layers().empty() );
-
-  // create transform
-
-  Qt3DCore::QTransform *transform = nullptr;
-  transform = new Qt3DCore::QTransform();
-  entity->addComponent( transform );
-
-  // set up transform according to the extent covered by the quad geometry
-  const QgsAABB bbox = mNode->bbox();
-  const double side = bbox.xMax - bbox.xMin;
-  const double half = side / 2;
-
-  transform->setScale( side );
-  transform->setTranslation( QVector3D( bbox.xMin + half, 0, bbox.zMin + half ) );
 
   entity->setParent( parent );
   return entity;
