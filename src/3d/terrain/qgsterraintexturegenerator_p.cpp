@@ -30,18 +30,8 @@
 QgsTerrainTextureGenerator::QgsTerrainTextureGenerator( const Qgs3DMapSettings &map )
   : mMap( map )
   , mLastJobId( 0 )
+  , mTextureSize( QSize( mMap.mapTileResolution(), mMap.mapTileResolution() ) )
 {
-  switch ( map.terrainGenerator()->type() )
-  {
-    case QgsTerrainGenerator::Type::Flat:
-      mTextureSize = QSize( mMap.extent().width(), mMap.extent().height() );
-      break;
-    case QgsTerrainGenerator::Type::Dem:
-    case QgsTerrainGenerator::Type::Mesh:
-    case QgsTerrainGenerator::Type::Online:
-      mTextureSize = QSize( mMap.mapTileResolution(), mMap.mapTileResolution() );
-      break;
-  }
 }
 
 int QgsTerrainTextureGenerator::render( const QgsRectangle &extent, QgsChunkNodeId tileId, const QString &debugText )
