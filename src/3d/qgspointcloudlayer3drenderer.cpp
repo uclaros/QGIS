@@ -35,6 +35,7 @@ QgsPointCloud3DRenderContext::QgsPointCloud3DRenderContext( const Qgs3DMapSettin
   , mCoordinateTransform( coordinateTransform )
   , mFeedback( new QgsFeedback )
 {
+  updateExtent();
 }
 
 void QgsPointCloud3DRenderContext::setAttributes( const QgsPointCloudAttributeCollection &attributes )
@@ -63,6 +64,7 @@ QSet<int> QgsPointCloud3DRenderContext::getFilteredOutValues() const
 void QgsPointCloud3DRenderContext::setCoordinateTransform( const QgsCoordinateTransform &coordinateTransform )
 {
   mCoordinateTransform = coordinateTransform;
+  updateExtent();
 }
 
 bool QgsPointCloud3DRenderContext::isCanceled() const
@@ -73,6 +75,16 @@ bool QgsPointCloud3DRenderContext::isCanceled() const
 void QgsPointCloud3DRenderContext::cancelRendering() const
 {
   mFeedback->cancel();
+}
+
+void QgsPointCloud3DRenderContext::updateExtent()
+{
+  if ( map().extent().isEmpty() )
+    // TODO: Can the mMap extent actually be empty?
+    mExtent = QgsRectangle();
+  else
+    // TODO: Handle exceptions
+    mExtent = mCoordinateTransform.transformBoundingBox( map().extent(), Qgis::TransformDirection::Reverse );
 }
 // ---------
 

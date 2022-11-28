@@ -188,6 +188,19 @@ class _3D_NO_EXPORT QgsPointCloud3DRenderContext : public Qgs3DRenderContext
      * Returns the feedback object used to cancel rendering and check if rendering was canceled.
      */
     QgsFeedback *feedback() const { return mFeedback.get(); }
+
+    /**
+     * Returns the 3D scene's extent in layer crs.
+     * \since QGIS 3.30
+     */
+    QgsRectangle extent() const { return mExtent; }
+
+    /**
+     * Recalculates the 3D scene's extent in layer's crs
+     * \since QGIS 3.30
+     */
+    void updateExtent();
+
   private:
 #ifdef SIP_RUN
     QgsPointCloudRenderContext( const QgsPointCloudRenderContext &rh );
@@ -199,6 +212,7 @@ class _3D_NO_EXPORT QgsPointCloud3DRenderContext : public Qgs3DRenderContext
     double mZValueFixedOffset = 0;
     QgsCoordinateTransform mCoordinateTransform;
     std::unique_ptr<QgsFeedback> mFeedback;
+    QgsRectangle mExtent;
 };
 
 
