@@ -161,6 +161,7 @@ QgsMapSettings QgsTerrainTextureGenerator::baseMapSettings()
   mapSettings.setTransformContext( mMap.transformContext() );
   mapSettings.setPathResolver( mMap.pathResolver() );
   mapSettings.setRendererUsage( mMap.rendererUsage() );
+  mapSettings.addClippingRegion( QgsMapClippingRegion( QgsGeometry::fromRect( mMap.extent() ) ) );
 
   QgsMapThemeCollection *mapThemes = mMap.mapThemeCollection();
   QString mapThemeName = mMap.terrainMapTheme();
