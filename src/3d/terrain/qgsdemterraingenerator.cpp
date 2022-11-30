@@ -51,6 +51,7 @@ QgsTerrainGenerator *QgsDemTerrainGenerator::clone() const
   cloned->mLayer = mLayer;
   cloned->mResolution = mResolution;
   cloned->mSkirtHeight = mSkirtHeight;
+  cloned->mExtent = mExtent;
   cloned->updateGenerator();
   return cloned;
 }
@@ -104,17 +105,23 @@ QgsChunkLoader *QgsDemTerrainGenerator::createChunkLoader( QgsChunkNode *node ) 
   return new QgsDemTerrainTileLoader( mTerrain, node, const_cast<QgsDemTerrainGenerator *>( this ) );
 }
 
+void QgsDemTerrainGenerator::setExtent( const QgsRectangle &extent )
+{
+  if ( mExtent == extent )
+    return;
+
+  mExtent = extent;
+  updateGenerator();
+
+  emit extentChanged();
+}
+
 void QgsDemTerrainGenerator::updateGenerator()
 {
   QgsRasterLayer *dem = layer();
   if ( dem )
   {
-    QgsRectangle te = dem->extent();
-    QgsCoordinateTransform terrainToMapTransform( dem->crs(), mCrs, mTransformContext );
-    terrainToMapTransform.setBallparkTransformsAreAppropriate( true );
-    te = terrainToMapTransform.transformBoundingBox( te );
-
-    mTerrainTilingScheme = QgsTilingScheme( te, mCrs );
+    mTerrainTilingScheme = QgsTilingScheme( mExtent, mCrs );
     delete mHeightMapGenerator;
     mHeightMapGenerator = new QgsDemHeightMapGenerator( dem, mTerrainTilingScheme, mResolution, mTransformContext );
     mIsValid = true;

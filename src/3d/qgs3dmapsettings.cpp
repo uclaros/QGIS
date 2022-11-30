@@ -94,6 +94,7 @@ Qgs3DMapSettings::Qgs3DMapSettings( const Qgs3DMapSettings &other )
   , mRendererUsage( other.mRendererUsage )
   , m3dAxisSettings( other.m3dAxisSettings )
   , mIsDebugOverlayEnabled( other.mIsDebugOverlayEnabled )
+  , mExtent( other.mExtent )
 {
   for ( QgsAbstract3DRenderer *renderer : std::as_const( other.mRenderers ) )
   {
@@ -127,6 +128,13 @@ void Qgs3DMapSettings::readXml( const QDomElement &elem, const QgsReadWriteConte
               elemOrigin.attribute( QStringLiteral( "x" ) ).toDouble(),
               elemOrigin.attribute( QStringLiteral( "y" ) ).toDouble(),
               elemOrigin.attribute( QStringLiteral( "z" ) ).toDouble() );
+
+  QDomElement elemExtent = elem.firstChildElement( QStringLiteral( "extent" ) );
+  mExtent = QgsRectangle(
+              elemExtent.attribute( QStringLiteral( "xMin" ) ).toDouble(),
+              elemExtent.attribute( QStringLiteral( "yMin" ) ).toDouble(),
+              elemExtent.attribute( QStringLiteral( "xMax" ) ).toDouble(),
+              elemExtent.attribute( QStringLiteral( "yMax" ) ).toDouble() );
 
   QDomElement elemCamera = elem.firstChildElement( QStringLiteral( "camera" ) );
   if ( !elemCamera.isNull() )
@@ -339,6 +347,13 @@ QDomElement Qgs3DMapSettings::writeXml( QDomDocument &doc, const QgsReadWriteCon
   elemOrigin.setAttribute( QStringLiteral( "y" ), QString::number( mOrigin.y() ) );
   elemOrigin.setAttribute( QStringLiteral( "z" ), QString::number( mOrigin.z() ) );
   elem.appendChild( elemOrigin );
+
+  QDomElement elemExtent = doc.createElement( QStringLiteral( "extent" ) );
+  elemExtent.setAttribute( QStringLiteral( "xMin" ), QString::number( mExtent.xMinimum() ) );
+  elemExtent.setAttribute( QStringLiteral( "yMin" ), QString::number( mExtent.yMinimum() ) );
+  elemExtent.setAttribute( QStringLiteral( "xMax" ), QString::number( mExtent.xMaximum() ) );
+  elemExtent.setAttribute( QStringLiteral( "yMax" ), QString::number( mExtent.yMaximum() ) );
+  elem.appendChild( elemExtent );
 
   QDomElement elemCamera = doc.createElement( QStringLiteral( "camera" ) );
   elemCamera.setAttribute( QStringLiteral( "field-of-view" ), mFieldOfView );
@@ -581,6 +596,7 @@ QList<QgsMapLayer *> Qgs3DMapSettings::layers() const
 
 void Qgs3DMapSettings::configureTerrainFromProject( QgsProjectElevationProperties *properties, const QgsRectangle &fullExtent )
 {
+  setExtent( fullExtent );
   if ( properties->terrainProvider()->type() == QLatin1String( "flat" ) )
   {
     QgsFlatTerrainGenerator *flatTerrain = new QgsFlatTerrainGenerator;
@@ -596,6 +612,7 @@ void Qgs3DMapSettings::configureTerrainFromProject( QgsProjectElevationPropertie
 
     QgsDemTerrainGenerator *demTerrainGen = new QgsDemTerrainGenerator;
     demTerrainGen->setCrs( crs(), QgsProject::instance()->transformContext() );
+    demTerrainGen->setExtent( fullExtent );
     demTerrainGen->setLayer( rasterProvider->layer() );
     setTerrainGenerator( demTerrainGen );
 

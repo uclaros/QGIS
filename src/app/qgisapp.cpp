@@ -15887,10 +15887,21 @@ void QgisApp::read3DMapViewSettings( Qgs3DMapCanvasWidget *widget, QDomElement &
   // these things are not saved in project
   map->setSelectionColor( mMapCanvas->selectionColor() );
   map->setBackgroundColor( mMapCanvas->canvasColor() );
-  if ( map->terrainRenderingEnabled() && map->terrainGenerator() && map->terrainGenerator()->type() == QgsTerrainGenerator::Flat )
+  if ( map->terrainRenderingEnabled() && map->terrainGenerator() )
   {
-    QgsFlatTerrainGenerator *flatTerrainGen = static_cast<QgsFlatTerrainGenerator *>( map->terrainGenerator() );
-    flatTerrainGen->setExtent( mMapCanvas->projectExtent() );
+    QgsTerrainGenerator *terrainGen = map->terrainGenerator();
+    QgsRectangle mapExtent = mMapCanvas->projectExtent();
+    QgsCoordinateTransform ct = QgsCoordinateTransform( QgsProject::instance()->crs(), terrainGen->crs(), QgsProject::instance()->transformContext() );
+    ct.setBallparkTransformsAreAppropriate( true );
+    try
+    {
+      mapExtent = ct.transformBoundingBox( mMapCanvas->projectExtent() );
+    }
+    catch ( const QgsCsException & )
+    {
+      QgsDebugMsg( QStringLiteral( "Transformation of map extent failed." ) );
+    }
+    terrainGen->setExtent( mapExtent );
   }
   map->setOutputDpi( QGuiApplication::primaryScreen()->logicalDotsPerInch() );
 

@@ -60,10 +60,18 @@ class _3D_EXPORT QgsTilingScheme
     //! Returns CRS of the tiling scheme
     QgsCoordinateReferenceSystem crs() const { return mCrs; }
 
+    /**
+     * Returns the full extent used in the constructor
+     * \since QGIS 3.30
+     */
+    QgsRectangle fullExtent() const { return mFullExtent; }
+
   private:
     QgsPointXY mMapOrigin; //!< Origin point in map coordinates: (0,0) in the tiling scheme
     double mBaseTileSide = 0;  //!< Length of tile side at zoom level 0 in map coordinates
     QgsCoordinateReferenceSystem mCrs;  //!< CRS of the coordinates
+    QgsRectangle mFullExtent; //!< The fullExtent used in constructor
+
 
 };
 

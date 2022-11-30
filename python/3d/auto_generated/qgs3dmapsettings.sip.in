@@ -667,6 +667,20 @@ This parameter is transient. It is not saved in the project parameters.
 .. versionadded:: 3.26
 %End
 
+    QgsRectangle extent() const;
+%Docstring
+Returns the 3D scene's 2D extent in project's CRS
+
+.. versionadded:: 3.30
+%End
+    void setExtent( const QgsRectangle &extent );
+%Docstring
+Sets the 3D scene's 2D ``extent`` in project's CRS
+Terrain will only be generated within this extent and layer 3D data will only be loaded within this extent.
+
+.. versionadded:: 3.30
+%End
+
   signals:
 
     void settingsChanged();

@@ -670,6 +670,19 @@ class _3D_EXPORT Qgs3DMapSettings : public QObject, public QgsTemporalRangeObjec
      */
     void setIsDebugOverlayEnabled( bool debugOverlayEnabled );
 
+    /**
+     * Returns the 3D scene's 2D extent in project's CRS
+     * \since QGIS 3.30
+     */
+    QgsRectangle extent() const { return mExtent; };
+
+    /**
+     * Sets the 3D scene's 2D \a extent in project's CRS
+     * Terrain will only be generated within this extent and layer 3D data will only be loaded within this extent.
+     * \since QGIS 3.30
+     */
+    void setExtent( const QgsRectangle &extent ) { mExtent = extent; }
+
   signals:
 
     /**
@@ -940,6 +953,8 @@ class _3D_EXPORT Qgs3DMapSettings : public QObject, public QgsTemporalRangeObjec
     Qgs3DAxisSettings m3dAxisSettings; //!< 3d axis related configuration
 
     bool mIsDebugOverlayEnabled = false;
+
+    QgsRectangle mExtent; //!< 2d extent used to limit the 3d view
 
 };
 

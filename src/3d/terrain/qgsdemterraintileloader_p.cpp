@@ -168,7 +168,7 @@ QgsDemHeightMapGenerator::~QgsDemHeightMapGenerator()
 }
 
 
-static QByteArray _readDtmData( QgsRasterDataProvider *provider, const QgsRectangle &extent, int res, const QgsCoordinateReferenceSystem &destCrs )
+static QByteArray _readDtmData( QgsRasterDataProvider *provider, const QgsRectangle &extent, int res, const QgsCoordinateReferenceSystem &destCrs, const QgsRectangle &clippingExtent )
 {
   QgsEventTracing::ScopedEvent e( QStringLiteral( "3D" ), QStringLiteral( "DEM" ) );
 
@@ -187,6 +187,10 @@ static QByteArray _readDtmData( QgsRasterDataProvider *provider, const QgsRectan
   QByteArray data;
   if ( block )
   {
+    // set noData outside our clippingExtent
+    QRect subRect = QgsRasterBlock::subRect( extent, block->width(), block->height(), clippingExtent );
+    block->setIsNoDataExcept( subRect );
+
     block->convert( Qgis::DataType::Float32 ); // currently we expect just floats
     data = block->data();
     data.detach();  // this should make a deep copy
@@ -220,9 +224,9 @@ int QgsDemHeightMapGenerator::render( const QgsChunkNodeId &nodeId )
   QgsRectangle extent = mTilingScheme.tileToExtent( nodeId );
   float mapUnitsPerPixel = extent.width() / mResolution;
   extent.grow( mapUnitsPerPixel / 2 );
-  // but make sure not to go beyond the full extent (returns invalid values)
-  QgsRectangle fullExtent = mTilingScheme.tileToExtent( 0, 0, 0 );
-  extent = extent.intersect( fullExtent );
+  // but make sure not to go beyond the root tile's full extent (returns invalid values)
+  QgsRectangle rootTileExtent = mTilingScheme.tileToExtent( 0, 0, 0 );
+  extent = extent.intersect( rootTileExtent );
 
   JobData jd;
   jd.jobId = ++mLastJobId;
@@ -234,7 +238,7 @@ int QgsDemHeightMapGenerator::render( const QgsChunkNodeId &nodeId )
   connect( fw, &QFutureWatcher<QByteArray>::finished, fw, &QObject::deleteLater );
   // make a clone of the data provider so it is safe to use in worker thread
   if ( mDtm )
-    jd.future = QtConcurrent::run( _readDtmData, mClonedProvider, extent, mResolution, mTilingScheme.crs() );
+    jd.future = QtConcurrent::run( _readDtmData, mClonedProvider, extent, mResolution, mTilingScheme.crs(), mTilingScheme.fullExtent() );
   else
     jd.future = QtConcurrent::run( _readOnlineDtm, mDownloader.get(), extent, mResolution, mTilingScheme.crs(), mTransformContext );
 
