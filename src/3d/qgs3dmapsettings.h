@@ -75,6 +75,21 @@ class _3D_EXPORT Qgs3DMapSettings : public QObject, public QgsTemporalRangeObjec
     void resolveReferences( const QgsProject &project );
 
     /**
+     * Returns the 3D scene's 2D extent in project's CRS
+     * \since QGIS 3.30
+     */
+    QgsRectangle extent() const { return mExtent; };
+
+    /**
+     * Sets the 3D scene's 2D \a extent in project's CRS, while also setting the scene's origin to the extent's center
+     * Terrain will only be generated within this extent and layer 3D data will only be loaded within this extent.
+     *
+     * \see setOrigin()
+     * \since QGIS 3.30
+     */
+    void setExtent( const QgsRectangle &extent );
+
+    /**
      * Sets coordinates in map CRS at which our 3D world has origin (0,0,0)
      *
      * We move the 3D world origin to the center of the extent of our terrain: this is done
@@ -253,7 +268,7 @@ class _3D_EXPORT Qgs3DMapSettings : public QObject, public QgsTemporalRangeObjec
     float terrainElevationOffset() const { return mTerrainElevationOffset; }
 
     /**
-     * Sets terrain generator.
+     * Sets terrain generator and sets extent() as the generator's extent.
      *
      * It takes care of producing terrain tiles from the input data.
      * Takes ownership of the generator.
@@ -262,6 +277,7 @@ class _3D_EXPORT Qgs3DMapSettings : public QObject, public QgsTemporalRangeObjec
      *
      * \see terrainGenerator()
      * \see setTerrainRenderingEnabled()
+     * \see setExtent()
      */
     void setTerrainGenerator( QgsTerrainGenerator *gen SIP_TRANSFER ) SIP_SKIP;
 
@@ -669,19 +685,6 @@ class _3D_EXPORT Qgs3DMapSettings : public QObject, public QgsTemporalRangeObjec
      * \since QGIS 3.26
      */
     void setIsDebugOverlayEnabled( bool debugOverlayEnabled );
-
-    /**
-     * Returns the 3D scene's 2D extent in project's CRS
-     * \since QGIS 3.30
-     */
-    QgsRectangle extent() const { return mExtent; };
-
-    /**
-     * Sets the 3D scene's 2D \a extent in project's CRS
-     * Terrain will only be generated within this extent and layer 3D data will only be loaded within this extent.
-     * \since QGIS 3.30
-     */
-    void setExtent( const QgsRectangle &extent ) { mExtent = extent; }
 
   signals:
 

@@ -499,6 +499,31 @@ void Qgs3DMapSettings::resolveReferences( const QgsProject &project )
   }
 }
 
+void Qgs3DMapSettings::setExtent( const QgsRectangle &extent )
+{
+  mExtent = extent;
+  const QgsPointXY center = mExtent.center();
+  setOrigin( QgsVector3D( center.x(), center.y(), 0 ) );
+  if ( mTerrainGenerator )
+  {
+    QgsRectangle terrainExtent = mExtent;
+    if ( mCrs != mTerrainGenerator->crs() )
+    {
+      QgsCoordinateTransform ct = QgsCoordinateTransform( mCrs, mTerrainGenerator->crs(), mTransformContext );
+      ct.setBallparkTransformsAreAppropriate( true );
+      try
+      {
+        terrainExtent = ct.transformBoundingBox( mExtent );
+      }
+      catch ( const QgsCsException & )
+      {
+        QgsDebugMsg( QStringLiteral( "Transformation of map extent to terrain crs failed." ) );
+      }
+    }
+    mTerrainGenerator->setExtent( terrainExtent );
+  }
+}
+
 QgsVector3D Qgs3DMapSettings::mapToWorldCoordinates( const QgsVector3D &mapCoords ) const
 {
   return Qgs3DUtils::mapToWorldCoordinates( mapCoords, mOrigin );
@@ -601,7 +626,6 @@ void Qgs3DMapSettings::configureTerrainFromProject( QgsProjectElevationPropertie
   {
     QgsFlatTerrainGenerator *flatTerrain = new QgsFlatTerrainGenerator;
     flatTerrain->setCrs( crs() );
-    flatTerrain->setExtent( fullExtent );
     setTerrainGenerator( flatTerrain );
 
     setTerrainElevationOffset( properties->terrainProvider()->offset() );
@@ -612,7 +636,6 @@ void Qgs3DMapSettings::configureTerrainFromProject( QgsProjectElevationPropertie
 
     QgsDemTerrainGenerator *demTerrainGen = new QgsDemTerrainGenerator;
     demTerrainGen->setCrs( crs(), QgsProject::instance()->transformContext() );
-    demTerrainGen->setExtent( fullExtent );
     demTerrainGen->setLayer( rasterProvider->layer() );
     setTerrainGenerator( demTerrainGen );
 
@@ -638,7 +661,6 @@ void Qgs3DMapSettings::configureTerrainFromProject( QgsProjectElevationPropertie
   {
     QgsFlatTerrainGenerator *flatTerrain = new QgsFlatTerrainGenerator;
     flatTerrain->setCrs( crs() );
-    flatTerrain->setExtent( fullExtent );
     setTerrainGenerator( flatTerrain );
   }
 }
@@ -701,6 +723,21 @@ void Qgs3DMapSettings::setTerrainGenerator( QgsTerrainGenerator *gen )
     disconnect( mTerrainGenerator.get(), &QgsTerrainGenerator::terrainChanged, this, &Qgs3DMapSettings::terrainGeneratorChanged );
   }
 
+  QgsRectangle terrainExtent = mExtent;
+  if ( mCrs != gen->crs() )
+  {
+    QgsCoordinateTransform ct = QgsCoordinateTransform( mCrs, gen->crs(), mTransformContext );
+    ct.setBallparkTransformsAreAppropriate( true );
+    try
+    {
+      terrainExtent = ct.transformBoundingBox( mExtent );
+    }
+    catch ( const QgsCsException & )
+    {
+      QgsDebugMsg( QStringLiteral( "Transformation of map extent to terrain crs failed." ) );
+    }
+  }
+  gen->setExtent( terrainExtent );
   mTerrainGenerator.reset( gen );
   connect( mTerrainGenerator.get(), &QgsTerrainGenerator::extentChanged, this, &Qgs3DMapSettings::terrainGeneratorChanged );
   connect( mTerrainGenerator.get(), &QgsTerrainGenerator::terrainChanged, this, &Qgs3DMapSettings::terrainGeneratorChanged );
