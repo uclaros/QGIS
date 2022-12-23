@@ -84,7 +84,6 @@ class _3D_EXPORT QgsDemTerrainGenerator : public QgsTerrainGenerator
 
     QgsDemHeightMapGenerator *mHeightMapGenerator = nullptr;
 
-    QgsRectangle mExtent;
     QgsCoordinateReferenceSystem mCrs;
 
     QgsCoordinateTransformContext mTransformContext;

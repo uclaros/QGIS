@@ -17,7 +17,6 @@
 
 #include <Qt3DRender/QGeometryRenderer>
 #include <Qt3DCore/QTransform>
-#include <QVector3D>
 
 #include "qgs3dmapsettings.h"
 #include "qgschunknode_p.h"
@@ -128,39 +127,6 @@ void QgsFlatTerrainGenerator::writeXml( QDomElement &elem ) const
 void QgsFlatTerrainGenerator::readXml( const QDomElement &elem )
 {
   Q_UNUSED( elem )
-}
-
-QVector<QgsChunkNode *> QgsFlatTerrainGenerator::createChildren( QgsChunkNode *node ) const
-{
-  QVector<QgsChunkNode *> children;
-
-  if ( node->level() >= mMaxLevel )
-    return children;
-
-  const QgsChunkNodeId nodeId = node->tileId();
-  const float childError = node->error() / 2;
-  const QgsAABB bbox = node->bbox();
-  float xc = bbox.xCenter(), zc = bbox.zCenter();
-
-  for ( int i = 0; i < 4; ++i )
-  {
-    int dx = i & 1, dy = !!( i & 2 );
-    const QgsChunkNodeId childId( nodeId.d + 1, nodeId.x * 2 + dx, nodeId.y * 2 + ( dy ? 0 : 1 ) );  // TODO: inverse dy?
-    // the Y and Z coordinates below are intentionally flipped, because
-    // in chunk node IDs the X,Y axes define horizontal plane,
-    // while in our 3D scene the X,Z axes define the horizontal plane
-    const float chXMin = dx ? xc : bbox.xMin;
-    const float chXMax = dx ? bbox.xMax : xc;
-    const float chZMin = dy ? zc : bbox.zMin;
-    const float chZMax = dy ? bbox.zMax : zc;
-    const float chYMin = bbox.yMin;
-    const float chYMax = bbox.yMax;
-    QgsAABB childBbox = QgsAABB( chXMin, chYMin, chZMin, chXMax, chYMax, chZMax );
-    QgsRectangle childRect = Qgs3DUtils::worldToMapExtent( childBbox, mTerrain->map3D().origin() );
-    if ( mExtent.intersects( childRect ) )
-      children << new QgsChunkNode( childId, childBbox, childError, node );
-  }
-  return children;
 }
 
 void QgsFlatTerrainGenerator::setCrs( const QgsCoordinateReferenceSystem &crs )

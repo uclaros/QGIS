@@ -96,7 +96,8 @@ void QgsDemTerrainGenerator::readXml( const QDomElement &elem )
 void QgsDemTerrainGenerator::resolveReferences( const QgsProject &project )
 {
   mLayer = QgsMapLayerRef( project.mapLayer( mLayer.layerId ) );
-  updateGenerator();
+  // now that we have the layer, call setExtent() again so we can keep the intersection of mExtent and layer's extent
+  setExtent( mExtent );
 }
 
 QgsChunkLoader *QgsDemTerrainGenerator::createChunkLoader( QgsChunkNode *node ) const
@@ -107,10 +108,29 @@ QgsChunkLoader *QgsDemTerrainGenerator::createChunkLoader( QgsChunkNode *node ) 
 
 void QgsDemTerrainGenerator::setExtent( const QgsRectangle &extent )
 {
-  if ( mExtent == extent )
+  if ( !mLayer )
+  {
+    // Keep the whole extent for now and setExtent() will be called by again by resolveReferences()
+    mExtent = extent;
     return;
+  }
 
-  mExtent = extent;
+  QgsRectangle layerExtent = mLayer->extent();
+  if ( mCrs != mLayer->crs() )
+  {
+    QgsCoordinateTransform ct( mLayer->crs(), mCrs, mTransformContext );
+    ct.setBallparkTransformsAreAppropriate( true );
+    try
+    {
+      layerExtent = ct.transformBoundingBox( layerExtent );
+    }
+    catch ( const QgsCsException & )
+    {
+      QgsDebugMsg( QStringLiteral( "Transformation of layer extent to terrain crs failed." ) );
+    }
+  }
+  // no need to have an mExtent larger than the actual layer's extent
+  mExtent = extent.intersect( layerExtent );
   updateGenerator();
 
   emit extentChanged();

@@ -20,7 +20,6 @@
 
 #include "qgsterraingenerator.h"
 #include "qgsterraintileloader_p.h"
-#include "qgsrectangle.h"
 #include <Qt3DExtras/QPlaneGeometry>
 
 #define SIP_NO_FILE
@@ -66,7 +65,6 @@ class _3D_EXPORT QgsFlatTerrainGenerator : public QgsTerrainGenerator
     void rootChunkHeightRange( float &hMin, float &hMax ) const override;
     void writeXml( QDomElement &elem ) const override;
     void readXml( const QDomElement &elem ) override;
-    QVector<QgsChunkNode *> createChildren( QgsChunkNode *node ) const override;
 
     //! Sets CRS of the terrain
     void setCrs( const QgsCoordinateReferenceSystem &crs );
@@ -77,7 +75,6 @@ class _3D_EXPORT QgsFlatTerrainGenerator : public QgsTerrainGenerator
 
     void updateTilingScheme();
 
-    QgsRectangle mExtent;
     QgsCoordinateReferenceSystem mCrs;
 };
 
