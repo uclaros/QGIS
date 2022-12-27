@@ -828,7 +828,6 @@ void TestQgs3DRendering::testMapTheme()
 
 void TestQgs3DRendering::testMesh()
 {
-  return;
   const QgsRectangle fullExtent = mLayerMeshDataset->extent();
 
   Qgs3DMapSettings *map = new Qgs3DMapSettings;
@@ -847,12 +846,12 @@ void TestQgs3DRendering::testMesh()
   QgsOffscreen3DEngine engine;
   Qgs3DMapScene *scene = new Qgs3DMapScene( *map, &engine );
   engine.setRootEntity( scene );
+  scene->cameraController()->setLookingAtPoint( QgsVector3D( 0, 0, 0 ), 3000, 25, 45 );
 
   Qgs3DUtils::captureSceneImage( engine, scene );
   // When running the test on Travis, it would initially return empty rendered image.
   // Capturing the initial image and throwing it away fixes that. Hopefully we will
   // find a better fix in the future.
-  scene->cameraController()->setLookingAtPoint( QgsVector3D( 0, 0, 0 ), 3000, 25, 45 );
   QImage img = Qgs3DUtils::captureSceneImage( engine, scene );
   delete scene;
   delete map;
@@ -862,7 +861,6 @@ void TestQgs3DRendering::testMesh()
 
 void TestQgs3DRendering::testMesh_datasetOnFaces()
 {
-  return;
   const QgsRectangle fullExtent = mLayerMeshDataset->extent();
 
   QgsMesh3DSymbol *symbolMesh3d = new QgsMesh3DSymbol;
@@ -890,12 +888,12 @@ void TestQgs3DRendering::testMesh_datasetOnFaces()
   QgsOffscreen3DEngine engine;
   Qgs3DMapScene *scene = new Qgs3DMapScene( *map, &engine );
   engine.setRootEntity( scene );
+  scene->cameraController()->setLookingAtPoint( QgsVector3D( 0, 0, 0 ), 3000, 25, 45 );
 
   Qgs3DUtils::captureSceneImage( engine, scene );
   // When running the test on Travis, it would initially return empty rendered image.
   // Capturing the initial image and throwing it away fixes that. Hopefully we will
   // find a better fix in the future.
-  scene->cameraController()->setLookingAtPoint( QgsVector3D( 0, 0, 0 ), 3000, 25, 45 );
   QImage img = Qgs3DUtils::captureSceneImage( engine, scene );
   delete scene;
   delete map;
@@ -1047,7 +1045,6 @@ bool TestQgs3DRendering::renderCheck( const QString &testName, QImage &image, in
 
 void TestQgs3DRendering::testAnimationExport()
 {
-  return;
   const QgsRectangle fullExtent = mLayerDtm->extent();
 
   Qgs3DMapSettings map;
@@ -1088,7 +1085,6 @@ void TestQgs3DRendering::testAnimationExport()
 
 void TestQgs3DRendering::testInstancedRendering()
 {
-  return;
   const QgsRectangle fullExtent( 1000, 1000, 2000, 2000 );
 
   std::unique_ptr<QgsVectorLayer> layerPointsZ( new QgsVectorLayer( "PointZ?crs=EPSG:27700", "points Z", "memory" ) );
@@ -1304,7 +1300,7 @@ void TestQgs3DRendering::testFilteredFlatTerrain()
   engine.setRootEntity( scene );
 
   // look from the top
-  scene->cameraController()->setLookingAtPoint( QgsVector3D( 0, 0, 0 ), 1200, 0, 0 );
+  scene->cameraController()->setLookingAtPoint( QgsVector3D( 0, 0, 0 ), 2000, 0, 0 );
 
   // When running the test on Travis, it would initially return empty rendered image.
   // Capturing the initial image and throwing it away fixes that. Hopefully we will
@@ -1314,48 +1310,18 @@ void TestQgs3DRendering::testFilteredFlatTerrain()
   QImage img = Qgs3DUtils::captureSceneImage( engine, scene );
   renderCheck( "flat_terrain_filtered_1", img, 40 );
 
-  // tilted view (pitch = 60 degrees)
-  scene->cameraController()->setLookingAtPoint( QgsVector3D( 0, 0, 0 ), 1200, 60, 0 );
-  QImage img2 = Qgs3DUtils::captureSceneImage( engine, scene );
-  renderCheck( "flat_terrain_filtered_2", img2, 40 );
-
-  // also add horizontal rotation (yaw = 45 degrees)
-  scene->cameraController()->setLookingAtPoint( QgsVector3D( 0, 0, 0 ), 1200, 60, 45 );
-  QImage img3 = Qgs3DUtils::captureSceneImage( engine, scene );
-  renderCheck( "flat_terrain_filtered_3", img3, 40 );
-
-  // change camera lens field of view
-  map->setFieldOfView( 85.0f );
-  QImage img4 = Qgs3DUtils::captureSceneImage( engine, scene );
-  renderCheck( "flat_terrain_filtered_4", img4, 40 );
-
   // Now set the extent to have height > width and redo
   fullExtent = mLayerDtm->extent();
   fullExtent.setXMaximum( fullExtent.xMaximum() - fullExtent.width() / 3 );
   fullExtent.setXMinimum( fullExtent.xMinimum() + fullExtent.width() / 3 );
   map->setExtent( fullExtent );
 
-  QImage img5 = Qgs3DUtils::captureSceneImage( engine, scene );
-  renderCheck( "flat_terrain_filtered_5", img5, 40 );
-
-  // tilted view (pitch = 60 degrees)
-  scene->cameraController()->setLookingAtPoint( QgsVector3D( 0, 0, 0 ), 1200, 60, 0 );
-  QImage img6 = Qgs3DUtils::captureSceneImage( engine, scene );
-  renderCheck( "flat_terrain_filtered_6", img6, 40 );
-
-  // also add horizontal rotation (yaw = 45 degrees)
-  scene->cameraController()->setLookingAtPoint( QgsVector3D( 0, 0, 0 ), 1200, 60, 45 );
-  QImage img7 = Qgs3DUtils::captureSceneImage( engine, scene );
-  renderCheck( "flat_terrain_filtered_7", img7, 40 );
-
-  // change camera lens field of view
-  map->setFieldOfView( 85.0f );
-  QImage img8 = Qgs3DUtils::captureSceneImage( engine, scene );
+  QImage img2 = Qgs3DUtils::captureSceneImage( engine, scene );
 
   delete scene;
   delete map;
 
-  QVERIFY( renderCheck( "flat_terrain_filtered_8", img8, 40 ) );
+  QVERIFY( renderCheck( "flat_terrain_filtered_2", img2, 40 ) );
 }
 
 void TestQgs3DRendering::testFilteredDemTerrain()
@@ -1379,7 +1345,7 @@ void TestQgs3DRendering::testFilteredDemTerrain()
   Qgs3DMapScene *scene = new Qgs3DMapScene( *map, &engine );
   engine.setRootEntity( scene );
 
-  scene->cameraController()->setLookingAtPoint( QgsVector3D( 0, 0, 0 ), 2000, 0, 0 );
+  scene->cameraController()->setLookingAtPoint( QgsVector3D( 0, 0, 0 ), 2000, 60, 225 );
 
   // When running the test on Travis, it would initially return empty rendered image.
   // Capturing the initial image and throwing it away fixes that. Hopefully we will
@@ -1389,30 +1355,19 @@ void TestQgs3DRendering::testFilteredDemTerrain()
   QImage img1 = Qgs3DUtils::captureSceneImage( engine, scene );
   renderCheck( "dem_terrain_filtered_1", img1, 40 );
 
-  scene->cameraController()->setLookingAtPoint( QgsVector3D( 0, 0, 0 ), 2000, 60, 0 );
-
-  QImage img2 = Qgs3DUtils::captureSceneImage( engine, scene );
-  renderCheck( "dem_terrain_filtered_2", img2, 40 );
-
-
   // Now set the extent to have height > width and redo
   fullExtent = mLayerDtm->extent();
   fullExtent.setXMaximum( fullExtent.xMaximum() - fullExtent.width() / 3 );
   fullExtent.setXMinimum( fullExtent.xMinimum() + fullExtent.width() / 3 );
   map->setExtent( fullExtent );
-  scene->cameraController()->setLookingAtPoint( QgsVector3D( 0, 0, 0 ), 2000, 0, 0 );
+  scene->cameraController()->setLookingAtPoint( QgsVector3D( 0, 0, 0 ), 2000, 60, 45 );
 
-  QImage img3 = Qgs3DUtils::captureSceneImage( engine, scene );
-  renderCheck( "dem_terrain_filtered_3", img3, 40 );
-
-  scene->cameraController()->setLookingAtPoint( QgsVector3D( 0, 0, 0 ), 2000, 60, 0 );
-
-  QImage img4 = Qgs3DUtils::captureSceneImage( engine, scene );
+  QImage img2 = Qgs3DUtils::captureSceneImage( engine, scene );
 
   delete scene;
   delete map;
 
-  QVERIFY( renderCheck( "dem_terrain_filtered_4", img4, 40 ) );
+  QVERIFY( renderCheck( "dem_terrain_filtered_2", img2, 40 ) );
 }
 
 void TestQgs3DRendering::testFilteredExtrudedPolygons()
@@ -1436,7 +1391,7 @@ void TestQgs3DRendering::testFilteredExtrudedPolygons()
   Qgs3DMapScene *scene = new Qgs3DMapScene( *map, &engine );
   engine.setRootEntity( scene );
 
-  scene->cameraController()->setLookingAtPoint( QgsVector3D( 0, 0, 250 ), 1000, 45, 0 );
+  scene->cameraController()->setLookingAtPoint( QgsVector3D( 0, 0, 250 ), 1500, 45, 0 );
 
   QgsPhongMaterialSettings material;
   material.setAmbient( Qt::lightGray );
@@ -1451,22 +1406,11 @@ void TestQgs3DRendering::testFilteredExtrudedPolygons()
   // find a better fix in the future.
   Qgs3DUtils::captureSceneImage( engine, scene );
   QImage img = Qgs3DUtils::captureSceneImage( engine, scene );
-  renderCheck( "polygon3d_extrusion_filtered", img, 40 );
 
-  // change opacity
-  QgsPhongMaterialSettings materialSettings;
-  materialSettings.setAmbient( Qt::lightGray );
-  materialSettings.setOpacity( 0.5f );
-  QgsPolygon3DSymbol *symbol3dOpacity = new QgsPolygon3DSymbol;
-  symbol3dOpacity->setMaterial( materialSettings.clone() );
-  symbol3dOpacity->setExtrusionHeight( 10.f );
-  QgsVectorLayer3DRenderer *renderer3dOpacity = new QgsVectorLayer3DRenderer( symbol3dOpacity );
-  mLayerBuildings->setRenderer3D( renderer3dOpacity );
-  QImage img2 = Qgs3DUtils::captureSceneImage( engine, scene );
   delete scene;
   delete map;
 
-  QVERIFY( renderCheck( "polygon3d_extrusion_opacity_filtered", img2, 40 ) );
+  QVERIFY( renderCheck( "polygon3d_extrusion_filtered", img, 40 ) );
 
 }
 
