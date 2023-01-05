@@ -249,6 +249,15 @@ Qgs3DMapConfigWidget::Qgs3DMapConfigWidget( Qgs3DMapSettings *map, QgsMapCanvas 
 
   // Ambient occlusion
   mAmbientOcclusionSettingsWidget->setAmbientOcclusionSettings( map->ambientOcclusionSettings() );
+
+  // ==================
+  // Page: General
+
+  groupExtent->setOutputCrs( mMap->crs() );
+  groupExtent->setOriginalExtent( mMap->extent(), mMap->crs() );
+  groupExtent->setOutputExtentFromOriginal();
+  groupExtent->setMapCanvas( mMainCanvas );
+
 }
 
 Qgs3DMapConfigWidget::~Qgs3DMapConfigWidget()
@@ -260,20 +269,9 @@ Qgs3DMapConfigWidget::~Qgs3DMapConfigWidget()
 
 void Qgs3DMapConfigWidget::apply()
 {
-  bool needsUpdateOrigin = false;
-
-  const QgsReferencedRectangle extent = QgsProject::instance()->viewSettings()->fullExtent();
-  QgsCoordinateTransform ct( extent.crs(), mMap->crs(), QgsProject::instance()->transformContext() );
-  ct.setBallparkTransformsAreAppropriate( true );
-  QgsRectangle rect;
-  try
-  {
-    rect = ct.transformBoundingBox( extent );
-  }
-  catch ( QgsCsException & )
-  {
-    rect = extent;
-  }
+  const QgsRectangle extent = groupExtent->outputExtent();
+  if ( extent != mMap->extent() )
+    mMap->setExtent( extent );
 
   const QgsTerrainGenerator::Type terrainType = static_cast<QgsTerrainGenerator::Type>( cboTerrainType->currentData().toInt() );
 
@@ -284,9 +282,7 @@ void Qgs3DMapConfigWidget::apply()
     {
       QgsFlatTerrainGenerator *flatTerrainGen = new QgsFlatTerrainGenerator;
       flatTerrainGen->setCrs( mMap->crs() );
-      flatTerrainGen->setExtent( rect );
       mMap->setTerrainGenerator( flatTerrainGen );
-      needsUpdateOrigin = true;
     }
     break;
     case QgsTerrainGenerator::Dem:
@@ -308,12 +304,10 @@ void Qgs3DMapConfigWidget::apply()
       {
         QgsDemTerrainGenerator *demTerrainGen = new QgsDemTerrainGenerator;
         demTerrainGen->setCrs( mMap->crs(), QgsProject::instance()->transformContext() );
-        demTerrainGen->setExtent( mMap->extent() );
         demTerrainGen->setLayer( demLayer );
         demTerrainGen->setResolution( spinTerrainResolution->value() );
         demTerrainGen->setSkirtHeight( spinTerrainSkirtHeight->value() );
         mMap->setTerrainGenerator( demTerrainGen );
-        needsUpdateOrigin = true;
       }
     }
     break;
@@ -332,11 +326,9 @@ void Qgs3DMapConfigWidget::apply()
       {
         QgsOnlineTerrainGenerator *onlineTerrainGen = new QgsOnlineTerrainGenerator;
         onlineTerrainGen->setCrs( mMap->crs(), QgsProject::instance()->transformContext() );
-        onlineTerrainGen->setExtent( rect );
         onlineTerrainGen->setResolution( spinTerrainResolution->value() );
         onlineTerrainGen->setSkirtHeight( spinTerrainSkirtHeight->value() );
         mMap->setTerrainGenerator( onlineTerrainGen );
-        needsUpdateOrigin = true;
       }
     }
     break;
@@ -350,17 +342,8 @@ void Qgs3DMapConfigWidget::apply()
       symbol->setVerticalScale( spinTerrainScale->value() );
       newTerrainGenerator->setSymbol( symbol.release() );
       mMap->setTerrainGenerator( newTerrainGenerator );
-      needsUpdateOrigin = true;
     }
     break;
-  }
-
-  if ( needsUpdateOrigin && mMap->terrainRenderingEnabled() && mMap->terrainGenerator() )
-  {
-    const QgsRectangle te = m3DMapCanvas->scene()->sceneExtent();
-
-    const QgsPointXY center = te.center();
-    mMap->setOrigin( QgsVector3D( center.x(), center.y(), 0 ) );
   }
 
   mMap->setFieldOfView( spinCameraFieldOfView->value() );
@@ -462,32 +445,7 @@ void Qgs3DMapConfigWidget::onTerrainLayerChanged()
 
 void Qgs3DMapConfigWidget::updateMaxZoomLevel()
 {
-  QgsRectangle te;
-  const QgsTerrainGenerator::Type terrainType = static_cast<QgsTerrainGenerator::Type>( cboTerrainType->currentData().toInt() );
-  if ( terrainType == QgsTerrainGenerator::Dem )
-  {
-    if ( QgsRasterLayer *demLayer = qobject_cast<QgsRasterLayer *>( cboTerrainLayer->currentLayer() ) )
-    {
-      te = demLayer->extent();
-      QgsCoordinateTransform terrainToMapTransform( demLayer->crs(), mMap->crs(), QgsProject::instance()->transformContext() );
-      terrainToMapTransform.setBallparkTransformsAreAppropriate( true );
-      te = terrainToMapTransform.transformBoundingBox( te );
-    }
-  }
-  else if ( terrainType == QgsTerrainGenerator::Mesh )
-  {
-    if ( QgsMeshLayer *meshLayer = qobject_cast<QgsMeshLayer *>( cboTerrainLayer->currentLayer() ) )
-    {
-      te = meshLayer->extent();
-      QgsCoordinateTransform terrainToMapTransform( meshLayer->crs(), mMap->crs(), QgsProject::instance()->transformContext() );
-      terrainToMapTransform.setBallparkTransformsAreAppropriate( true );
-      te = terrainToMapTransform.transformBoundingBox( te );
-    }
-  }
-  else  // flat or online
-  {
-    te = mMainCanvas->projectExtent();
-  }
+  const QgsRectangle te = groupExtent->outputExtent();
 
   const double tile0width = std::max( te.width(), te.height() );
   const int zoomLevel = Qgs3DUtils::maxZoomLevel( tile0width, spinMapResolution->value(), spinGroundError->value() );
