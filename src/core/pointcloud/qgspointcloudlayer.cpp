@@ -108,6 +108,17 @@ QgsMapLayerRenderer *QgsPointCloudLayer::createMapRenderer( QgsRenderContext &re
 {
   QGIS_PROTECT_QOBJECT_THREAD_ACCESS
 
+//  if ( mDataProvider->indexes().size() > 1 )
+//  {
+//    const QgsRectangle extent = rendererContext.coordinateTransform().transformBoundingBox( rendererContext.mapExtent(), Qgis::TransformDirection::Reverse );
+//    for ( const auto &i : mDataProvider->indexes() )
+//    {
+//      if ( i->isValid() && i->nodeMapExtent( i->root() ).intersects( extent ) )
+//      {
+
+//      }
+//    }
+//  }
   return new QgsPointCloudLayerRenderer( this, rendererContext );
 }
 

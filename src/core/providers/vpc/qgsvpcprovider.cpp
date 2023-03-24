@@ -27,6 +27,7 @@
 #include "qgsproviderutils.h"
 #include "qgsthreadingutils.h"
 #include "qgsjsonutils.h"
+#include "qgsmultipolygon.h"
 
 #include <QIcon>
 
@@ -52,6 +53,8 @@ QgsVpcProvider::QgsVpcProvider(
     profile = std::make_unique< QgsScopedRuntimeProfile >( tr( "Open data source" ), QStringLiteral( "projectload" ) );
 
 //  loadIndex( );
+  mPolygonBounds.reset( new QgsGeometry( new QgsMultiPolygon() ) );
+
   parseFile();
   if ( mIndex && !mIndex->isValid() )
   {
@@ -79,7 +82,14 @@ QgsPointCloudAttributeCollection QgsVpcProvider::attributes() const
 {
   QGIS_PROTECT_QOBJECT_THREAD_ACCESS
 
-  return QgsPointCloudAttributeCollection();
+  // TODO: how to handle attributes?
+  const QVector<QgsPointCloudAttribute> attributes =
+  {
+    QgsPointCloudAttribute( QStringLiteral( "X" ), QgsPointCloudAttribute::Int32 ),
+    QgsPointCloudAttribute( QStringLiteral( "Y" ), QgsPointCloudAttribute::Int32 ),
+    QgsPointCloudAttribute( QStringLiteral( "Z" ), QgsPointCloudAttribute::Int32 )
+  };
+  return QgsPointCloudAttributeCollection( attributes );
 }
 
 bool QgsVpcProvider::isValid() const
@@ -132,7 +142,7 @@ QVariantMap QgsVpcProvider::originalMetadata() const
 {
   QGIS_PROTECT_QOBJECT_THREAD_ACCESS
 
-  return mIndex->originalMetadata();
+  return QVariantMap();//mIndex->originalMetadata();
 }
 
 void QgsVpcProvider::generateIndex()
@@ -145,12 +155,12 @@ void QgsVpcProvider::generateIndex()
 void QgsVpcProvider::parseFile()
 {
   QVariantMap res;
+  QFile file( dataSourceUri() );
+  const QFileInfo fInfo( file );
+
+  if ( file.open( QFile::ReadOnly ) )
   {
-    QFile file( dataSourceUri() );
-    if ( file.open( QFile::ReadOnly ) )
-    {
-      res = QgsJsonUtils::parseJson( file.readAll() ).toMap();
-    }
+    res = QgsJsonUtils::parseJson( file.readAll() ).toMap();
   }
 
   if ( res.isEmpty() ||
@@ -168,12 +178,48 @@ void QgsVpcProvider::parseFile()
     QVariantMap map = f.toMap();
 
     subIndex i;
-    i.uri = map.value( QStringLiteral( "filename" ) ).toString();
+    const QString filename = map.value( QStringLiteral( "filename" ) ).toString();
+
+    i.uri = fInfo.absoluteDir().absoluteFilePath( filename );
     i.count = map.value( QStringLiteral( "count" ) ).toLongLong();
-    i.extent = QgsRectangle();
+    const QList<QVariant> bbox = map.value( QStringLiteral( "bbox" ) ).toList();
+    i.extent = QgsRectangle( bbox.at( 0 ).toDouble(),
+                             bbox.at( 1 ).toDouble(),
+                             bbox.at( 3 ).toDouble(),
+                             bbox.at( 4 ).toDouble()
+                           );
+
+    i.index = new QgsCopcPointCloudIndex();
+    i.index->load( i.uri );
 
     mSubIndexes.push_back( i );
+
+    mPolygonBounds->addPart( QgsGeometry::fromRect( i.extent ) );
   }
+  mExtent = mPolygonBounds->boundingBox();
+}
+
+QgsGeometry QgsVpcProvider::polygonBounds() const
+{
+  return *mPolygonBounds;
+  QgsGeometry bounds = QgsGeometry::fromMultiPolygonXY( QgsMultiPolygonXY() );
+  for ( const auto &i : std::as_const( mSubIndexes ) )
+  {
+    bounds.addPart( QgsGeometry::fromRect( i.extent ) );
+  }
+  return bounds;
+}
+
+QVector<QgsPointCloudIndex *> QgsVpcProvider::indexes() const
+{
+  QVector<QgsPointCloudIndex *> v;
+
+  for ( const auto &i : std::as_const( mSubIndexes ) )
+  {
+    if ( i.index )
+      v.append( i.index );
+  }
+  return v;
 }
 
 QgsVpcProviderMetadata::QgsVpcProviderMetadata():

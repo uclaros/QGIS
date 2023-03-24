@@ -60,10 +60,13 @@ class QgsVpcProvider: public QgsPointCloudDataProvider
     void loadIndex( ) override;
     void generateIndex( ) override;
     PointCloudIndexGenerationState indexingState( ) override { return PointCloudIndexGenerationState::Indexed; }
+    QgsGeometry polygonBounds() const override;
+    QVector<QgsPointCloudIndex *> indexes() const override;
 
   private:
     void parseFile();
     QVector<subIndex> mSubIndexes;
+    std::unique_ptr<QgsGeometry> mPolygonBounds;
     std::unique_ptr<QgsPointCloudIndex> mIndex;
 
     QStringList mUriList;

@@ -163,6 +163,8 @@ class CORE_EXPORT QgsPointCloudDataProvider: public QgsDataProvider
      */
     virtual QgsPointCloudIndex *index() const SIP_SKIP {return nullptr;}
 
+    virtual QVector<QgsPointCloudIndex *> indexes() const SIP_SKIP;
+
     /**
      * Returns whether provider has index which is valid
      */

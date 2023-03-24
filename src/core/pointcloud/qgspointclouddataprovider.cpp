@@ -55,6 +55,14 @@ bool QgsPointCloudDataProvider::hasValidIndex() const
   return lIndex && lIndex->isValid();
 }
 
+QVector<QgsPointCloudIndex *> QgsPointCloudDataProvider::indexes() const
+{
+  QgsPointCloudIndex *lIndex = index();
+  if ( lIndex )
+    return { lIndex };
+  return {};
+}
+
 QgsGeometry QgsPointCloudDataProvider::polygonBounds() const
 {
   QGIS_PROTECT_QOBJECT_THREAD_ACCESS

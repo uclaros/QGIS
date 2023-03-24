@@ -121,6 +121,7 @@ Gets the current index generation state
 %End
 
 
+
     bool hasValidIndex() const;
 %Docstring
 Returns whether provider has index which is valid
