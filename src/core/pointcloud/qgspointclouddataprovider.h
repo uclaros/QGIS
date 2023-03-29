@@ -23,6 +23,7 @@
 #include "qgspointcloudattribute.h"
 #include "qgsstatisticalsummary.h"
 #include "qgspointcloudindex.h"
+#include "qgspointcloudsublayer.h"
 #include "qgspoint.h"
 #include "qgsray3d.h"
 #include <memory>
@@ -57,6 +58,7 @@ class CORE_EXPORT QgsPointCloudDataProvider: public QgsDataProvider
       ReadLayerMetadata = 1 << 0, //!< Provider can read layer metadata from data store.
       WriteLayerMetadata = 1 << 1, //!< Provider can write layer metadata to the data store. See QgsDataProvider::writeLayerMetadata()
       CreateRenderer = 1 << 2, //!< Provider can create 2D renderers using backend-specific formatting information. See QgsPointCloudDataProvider::createRenderer().
+      ContainSubIndexes = 1 << 3, //!< Provider can contain multiple indexes. Virtual point cloud files for example
     };
 
     Q_DECLARE_FLAGS( Capabilities, Capability )
@@ -164,6 +166,8 @@ class CORE_EXPORT QgsPointCloudDataProvider: public QgsDataProvider
     virtual QgsPointCloudIndex *index() const SIP_SKIP {return nullptr;}
 
     virtual QVector<QgsPointCloudIndex *> indexes() const SIP_SKIP;
+    virtual QVector<QgsPointCloudSubLayer> subIndexes() SIP_SKIP { return QVector<QgsPointCloudSubLayer>(); }
+    virtual void loadIndex( int ) { return loadIndex(); }
 
     /**
      * Returns whether provider has index which is valid

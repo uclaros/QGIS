@@ -18,6 +18,7 @@
 #include "qgspointcloudlayer.h"
 #include "qgspointcloudlayerrenderer.h"
 #include "qgspointcloudindex.h"
+#include "qgspointcloudsublayer.h"
 #include "qgsrectangle.h"
 #include "qgspointclouddataprovider.h"
 #include "qgsproviderregistry.h"
@@ -108,17 +109,7 @@ QgsMapLayerRenderer *QgsPointCloudLayer::createMapRenderer( QgsRenderContext &re
 {
   QGIS_PROTECT_QOBJECT_THREAD_ACCESS
 
-//  if ( mDataProvider->indexes().size() > 1 )
-//  {
-//    const QgsRectangle extent = rendererContext.coordinateTransform().transformBoundingBox( rendererContext.mapExtent(), Qgis::TransformDirection::Reverse );
-//    for ( const auto &i : mDataProvider->indexes() )
-//    {
-//      if ( i->isValid() && i->nodeMapExtent( i->root() ).intersects( extent ) )
-//      {
-
-//      }
-//    }
-//  }
+  loadIndexesForRenderContext( rendererContext );
   return new QgsPointCloudLayerRenderer( this, rendererContext );
 }
 
@@ -959,4 +950,26 @@ void QgsPointCloudLayer::resetRenderer()
   triggerRepaint();
 
   emit rendererChanged();
+}
+
+void QgsPointCloudLayer::loadIndexesForRenderContext( QgsRenderContext &rendererContext ) const
+{
+  if ( mDataProvider->capabilities() & QgsPointCloudDataProvider::ContainSubIndexes )
+  {
+    const QgsRectangle renderExtent = rendererContext.coordinateTransform().transformBoundingBox( rendererContext.mapExtent(), Qgis::TransformDirection::Reverse );
+    QVector<QgsPointCloudSubLayer> subIndex = mDataProvider->subIndexes();
+    for ( int i = 0; i < subIndex.size(); ++i )
+    {
+      // no need to load as it's there
+      if ( subIndex.at( i ).index )
+        continue;
+
+      const QgsRectangle intersection = subIndex.at( i ).extent.intersect( renderExtent );
+      if ( !intersection.isEmpty() &&
+           renderExtent.width() < subIndex.at( i ).extent.width() )
+      {
+        mDataProvider->loadIndex( i );
+      }
+    }
+  }
 }

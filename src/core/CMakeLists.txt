@@ -1597,6 +1597,7 @@ set(QGIS_CORE_HDRS
   pointcloud/qgspointcloudlayerprofilegenerator.h
   pointcloud/qgspointcloudlayerrenderer.h
   pointcloud/qgspointcloudindex.h
+  pointcloud/qgspointcloudsublayer.h
   pointcloud/qgspointclouddataprovider.h
   pointcloud/qgspointcloudrenderer.h
   pointcloud/qgspointcloudrendererregistry.h

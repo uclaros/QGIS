@@ -95,160 +95,187 @@ bool QgsPointCloudLayerRenderer::render()
     return true;
   }
 
-  bool canceled = false;
-  const QVector<QgsPointCloudIndex *> pcs = mLayer->dataProvider()->indexes();
-  for ( const auto &pc : pcs )
+  const bool hasMultipleIndexes = mLayer->dataProvider()->capabilities() & QgsPointCloudDataProvider::ContainSubIndexes;
+
+  // TODO cache!?
+  QgsPointCloudIndex *pc = mLayer->dataProvider()->index();
+  if ( !hasMultipleIndexes &&
+       ( !pc || !pc->isValid() ) )
   {
-    if ( canceled )
-      break;
+    mReadyToCompose = true;
+    return false;
+  }
 
-    if ( !pc || !pc->isValid() )
+  // if the previous layer render was relatively quick (e.g. less than 3 seconds), the we show any previously
+  // cached version of the layer during rendering instead of the usual progressive updates
+  if ( mRenderTimeHint > 0 && mRenderTimeHint <= MAX_TIME_TO_USE_CACHED_PREVIEW_IMAGE )
+  {
+    mBlockRenderUpdates = true;
+    mElapsedTimer.start();
+  }
+
+  mRenderer->startRender( context );
+
+  mAttributes.push_back( QgsPointCloudAttribute( QStringLiteral( "X" ), QgsPointCloudAttribute::Int32 ) );
+  mAttributes.push_back( QgsPointCloudAttribute( QStringLiteral( "Y" ), QgsPointCloudAttribute::Int32 ) );
+
+  if ( !context.renderContext().zRange().isInfinite() ||
+       mRenderer->drawOrder2d() == Qgis::PointCloudDrawOrder::BottomToTop ||
+       mRenderer->drawOrder2d() == Qgis::PointCloudDrawOrder::TopToBottom ||
+       renderContext()->elevationMap() )
+    mAttributes.push_back( QgsPointCloudAttribute( QStringLiteral( "Z" ), QgsPointCloudAttribute::Int32 ) );
+
+  // collect attributes required by renderer
+  QSet< QString > rendererAttributes = mRenderer->usedAttributes( context );
+
+
+  for ( const QString &attribute : std::as_const( rendererAttributes ) )
+  {
+    if ( mAttributes.indexOf( attribute ) >= 0 )
+      continue; // don't re-add attributes we are already going to fetch
+
+    const int layerIndex = mLayerAttributes.indexOf( attribute );
+    if ( layerIndex < 0 )
+    {
+      QgsMessageLog::logMessage( QObject::tr( "Required attribute %1 not found in layer" ).arg( attribute ), QObject::tr( "Point Cloud" ) );
       continue;
-
-    context.setOffset( pc->offset() );
-    context.setScale( pc->scale() );
-
-
-    // if the previous layer render was relatively quick (e.g. less than 3 seconds), the we show any previously
-    // cached version of the layer during rendering instead of the usual progressive updates
-    if ( mRenderTimeHint > 0 && mRenderTimeHint <= MAX_TIME_TO_USE_CACHED_PREVIEW_IMAGE )
-    {
-      mBlockRenderUpdates = true;
-      mElapsedTimer.start();
     }
 
-    mRenderer->startRender( context );
+    mAttributes.push_back( mLayerAttributes.at( layerIndex ) );
+  }
 
-    mAttributes.push_back( QgsPointCloudAttribute( QStringLiteral( "X" ), QgsPointCloudAttribute::Int32 ) );
-    mAttributes.push_back( QgsPointCloudAttribute( QStringLiteral( "Y" ), QgsPointCloudAttribute::Int32 ) );
-
-    if ( !context.renderContext().zRange().isInfinite() ||
-         mRenderer->drawOrder2d() == Qgis::PointCloudDrawOrder::BottomToTop ||
-         mRenderer->drawOrder2d() == Qgis::PointCloudDrawOrder::TopToBottom ||
-         renderContext()->elevationMap() )
-      mAttributes.push_back( QgsPointCloudAttribute( QStringLiteral( "Z" ), QgsPointCloudAttribute::Int32 ) );
-
-    // collect attributes required by renderer
-    QSet< QString > rendererAttributes = mRenderer->usedAttributes( context );
-
-
-    for ( const QString &attribute : std::as_const( rendererAttributes ) )
+  const QgsRectangle renderExtent = renderContext()->coordinateTransform().transformBoundingBox( renderContext()->mapExtent(), Qgis::TransformDirection::Reverse );
+  bool canceled = false;
+  if ( !hasMultipleIndexes )
+  {
+    canceled = !renderIndex( pc );
+  }
+  else
+  {
+    const auto subLayers = mLayer->dataProvider()->subIndexes();
+    for ( const auto &sl : subLayers )
     {
-      if ( mAttributes.indexOf( attribute ) >= 0 )
-        continue; // don't re-add attributes we are already going to fetch
+      if ( canceled )
+        break;
 
-      const int layerIndex = mLayerAttributes.indexOf( attribute );
-      if ( layerIndex < 0 )
-      {
-        QgsMessageLog::logMessage( QObject::tr( "Required attribute %1 not found in layer" ).arg( attribute ), QObject::tr( "Point Cloud" ) );
+      QgsPointCloudIndex *pc = sl.index.get();
+
+      const auto commonExtent = renderExtent.intersect( sl.extent );
+      if ( commonExtent.isEmpty() )
         continue;
+
+      if ( !pc || !pc->isValid() || renderExtent.width() > sl.extent.width() )
+      {
+        // when dealing with virtual point clouds, we want to render the individual extents when zoomed out
+        // and only use the selected renderer when zoomed in
+        mSubExtentsRenderer->startRender( context );
+        mSubExtentsRenderer->renderExtent( QgsGeometry::fromRect( sl.extent ), context );
+        mSubExtentsRenderer->stopRender( context );
       }
-
-      mAttributes.push_back( mLayerAttributes.at( layerIndex ) );
+      else
+      {
+        canceled = !renderIndex( pc );
+      }
     }
+  }
 
-    QgsPointCloudDataBounds db;
+  mRenderer->stopRender( context );
+  mReadyToCompose = true;
+  return !canceled;
+}
+
+bool QgsPointCloudLayerRenderer::renderIndex( QgsPointCloudIndex *pc )
+{
+  QgsPointCloudRenderContext context( *renderContext(),
+                                      pc->scale(),
+                                      pc->offset(),
+                                      mZScale,
+                                      mZOffset,
+                                      mFeedback.get() );
+
 
 #ifdef QGISDEBUG
-    QElapsedTimer t;
-    t.start();
+  QElapsedTimer t;
+  t.start();
 #endif
 
-    const IndexedPointCloudNode root = pc->root();
+  const IndexedPointCloudNode root = pc->root();
 
-    const double maximumError = context.renderContext().convertToPainterUnits( mRenderer->maximumScreenError(), mRenderer->maximumScreenErrorUnit() );// in pixels
+  const double maximumError = context.renderContext().convertToPainterUnits( mRenderer->maximumScreenError(), mRenderer->maximumScreenErrorUnit() );// in pixels
 
-    const QgsRectangle rootNodeExtentLayerCoords = pc->nodeMapExtent( root );
-    QgsRectangle rootNodeExtentMapCoords;
-    if ( !context.renderContext().coordinateTransform().isShortCircuited() )
+  const QgsRectangle rootNodeExtentLayerCoords = pc->nodeMapExtent( root );
+  QgsRectangle rootNodeExtentMapCoords;
+  if ( !context.renderContext().coordinateTransform().isShortCircuited() )
+  {
+    try
     {
-      try
-      {
-        QgsCoordinateTransform extentTransform = context.renderContext().coordinateTransform();
-        extentTransform.setBallparkTransformsAreAppropriate( true );
-        rootNodeExtentMapCoords = extentTransform.transformBoundingBox( rootNodeExtentLayerCoords );
-      }
-      catch ( QgsCsException & )
-      {
-        QgsDebugMsg( QStringLiteral( "Could not transform node extent to map CRS" ) );
-        rootNodeExtentMapCoords = rootNodeExtentLayerCoords;
-      }
+      QgsCoordinateTransform extentTransform = context.renderContext().coordinateTransform();
+      extentTransform.setBallparkTransformsAreAppropriate( true );
+      rootNodeExtentMapCoords = extentTransform.transformBoundingBox( rootNodeExtentLayerCoords );
     }
-    else
+    catch ( QgsCsException & )
     {
+      QgsDebugMsg( QStringLiteral( "Could not transform node extent to map CRS" ) );
       rootNodeExtentMapCoords = rootNodeExtentLayerCoords;
     }
+  }
+  else
+  {
+    rootNodeExtentMapCoords = rootNodeExtentLayerCoords;
+  }
 
-    // todo: check against the sub-index's exact bounds if available
-    if ( !rootNodeExtentMapCoords.intersects( context.renderContext().mapExtent() ) )
-      continue; // skip this index
+  const double rootErrorInMapCoordinates = rootNodeExtentMapCoords.width() / pc->span(); // in map coords
 
-    const double rootErrorInMapCoordinates = rootNodeExtentMapCoords.width() / pc->span(); // in map coords
+  double mapUnitsPerPixel = context.renderContext().mapToPixel().mapUnitsPerPixel();
+  if ( ( rootErrorInMapCoordinates < 0.0 ) || ( mapUnitsPerPixel < 0.0 ) || ( maximumError < 0.0 ) )
+  {
+    QgsDebugMsg( QStringLiteral( "invalid screen error" ) );
+    return false;
+  }
+  double rootErrorPixels = rootErrorInMapCoordinates / mapUnitsPerPixel; // in pixels
+  const QVector<IndexedPointCloudNode> nodes = traverseTree( pc, context.renderContext(), pc->root(), maximumError, rootErrorPixels );
 
-    double mapUnitsPerPixel = context.renderContext().mapToPixel().mapUnitsPerPixel();
-    if ( ( rootErrorInMapCoordinates < 0.0 ) || ( mapUnitsPerPixel < 0.0 ) || ( maximumError < 0.0 ) )
+  QgsPointCloudRequest request;
+  request.setAttributes( mAttributes );
+
+  // drawing
+  int nodesDrawn = 0;
+  bool canceled = false;
+
+  switch ( mRenderer->drawOrder2d() )
+  {
+    case Qgis::PointCloudDrawOrder::BottomToTop:
+    case Qgis::PointCloudDrawOrder::TopToBottom:
     {
-      QgsDebugMsg( QStringLiteral( "invalid screen error" ) );
-      mReadyToCompose = true;
-      return false;
+      nodesDrawn += renderNodesSorted( nodes, pc, context, request, canceled, mRenderer->drawOrder2d() );
+      break;
     }
-    double rootErrorPixels = rootErrorInMapCoordinates / mapUnitsPerPixel; // in pixels
-
-    // when dealing with virtual point clouds, we want to render the individual extents when zoomed out
-    // and only use the selected renderer when zoomed in
-    if ( pcs.size() > 1 && rootErrorPixels < 20 )
+    case Qgis::PointCloudDrawOrder::Default:
     {
-      mSubExtentsRenderer->startRender( context );
-      mSubExtentsRenderer->renderExtent( QgsGeometry::fromRect( rootNodeExtentMapCoords ), context );
-      mSubExtentsRenderer->stopRender( context );
-      continue;
-    }
-    const QVector<IndexedPointCloudNode> nodes = traverseTree( pc, context.renderContext(), pc->root(), maximumError, rootErrorPixels );
-
-    QgsPointCloudRequest request;
-    request.setAttributes( mAttributes );
-
-    // drawing
-    int nodesDrawn = 0;
-
-    switch ( mRenderer->drawOrder2d() )
-    {
-      case Qgis::PointCloudDrawOrder::BottomToTop:
-      case Qgis::PointCloudDrawOrder::TopToBottom:
+      switch ( pc->accessType() )
       {
-        nodesDrawn += renderNodesSorted( nodes, pc, context, request, canceled, mRenderer->drawOrder2d() );
-        break;
-      }
-      case Qgis::PointCloudDrawOrder::Default:
-      {
-        switch ( pc->accessType() )
+        case QgsPointCloudIndex::AccessType::Local:
         {
-          case QgsPointCloudIndex::AccessType::Local:
-          {
-            nodesDrawn += renderNodesSync( nodes, pc, context, request, canceled );
-            break;
-          }
-          case QgsPointCloudIndex::AccessType::Remote:
-          {
-            nodesDrawn += renderNodesAsync( nodes, pc, context, request, canceled );
-            break;
-          }
+          nodesDrawn += renderNodesSync( nodes, pc, context, request, canceled );
+          break;
+        }
+        case QgsPointCloudIndex::AccessType::Remote:
+        {
+          nodesDrawn += renderNodesAsync( nodes, pc, context, request, canceled );
+          break;
         }
       }
     }
+  }
 
 #ifdef QGISDEBUG
-    QgsDebugMsgLevel( QStringLiteral( "totals: %1 nodes | %2 points | %3ms" ).arg( nodesDrawn )
-                      .arg( context.pointsRendered() )
-                      .arg( t.elapsed() ), 2 );
+  QgsDebugMsgLevel( QStringLiteral( "totals: %1 nodes | %2 points | %3ms" ).arg( nodesDrawn )
+                    .arg( context.pointsRendered() )
+                    .arg( t.elapsed() ), 2 );
 #else
-    ( void )nodesDrawn;
+  ( void )nodesDrawn;
 #endif
 
-  }
-  mRenderer->stopRender( context );
-
-  mReadyToCompose = true;
   return !canceled;
 }
 

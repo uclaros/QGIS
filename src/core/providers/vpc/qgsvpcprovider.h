@@ -33,20 +33,13 @@ class QgsVpcProvider: public QgsPointCloudDataProvider
 {
     Q_OBJECT
   public:
-    struct subIndex
-    {
-      QgsPointCloudIndex *index;
-      QString uri;
-      QgsRectangle extent;
-      qint64 count;
-    };
-
     QgsVpcProvider( const QString &uri,
                     const QgsDataProvider::ProviderOptions &providerOptions,
                     QgsDataProvider::ReadFlags flags = QgsDataProvider::ReadFlags() );
 
     ~QgsVpcProvider();
 
+    QgsPointCloudDataProvider::Capabilities capabilities() const override { return QgsPointCloudDataProvider::Capability::ContainSubIndexes; }
     QgsCoordinateReferenceSystem crs() const override;
 
     QgsRectangle extent() const override;
@@ -62,10 +55,12 @@ class QgsVpcProvider: public QgsPointCloudDataProvider
     PointCloudIndexGenerationState indexingState( ) override { return PointCloudIndexGenerationState::Indexed; }
     QgsGeometry polygonBounds() const override;
     QVector<QgsPointCloudIndex *> indexes() const override;
+    QVector<QgsPointCloudSubLayer> subIndexes() override { return mSubLayers; }
+    void loadIndex( int ) override;
 
   private:
     void parseFile();
-    QVector<subIndex> mSubIndexes;
+    QVector<QgsPointCloudSubLayer> mSubLayers;
     std::unique_ptr<QgsGeometry> mPolygonBounds;
     std::unique_ptr<QgsPointCloudIndex> mIndex;
 

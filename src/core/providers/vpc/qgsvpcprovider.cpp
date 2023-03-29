@@ -21,6 +21,7 @@
 #include "qgsvpcprovider.h"
 #include "qgscopcpointcloudindex.h"
 #include "qgsremotecopcpointcloudindex.h"
+#include "qgspointcloudsublayer.h"
 #include "qgsruntimeprofiler.h"
 #include "qgsapplication.h"
 #include "qgsprovidersublayerdetails.h"
@@ -96,7 +97,7 @@ bool QgsVpcProvider::isValid() const
 {
   QGIS_PROTECT_QOBJECT_THREAD_ACCESS
 
-  return !mSubIndexes.isEmpty();
+  return !mSubLayers.isEmpty();
 }
 
 QString QgsVpcProvider::name() const
@@ -181,34 +182,31 @@ void QgsVpcProvider::parseFile()
   {
     QVariantMap map = f.toMap();
 
-    subIndex i;
+    QgsPointCloudSubLayer i;
     const QString filename = map.value( QStringLiteral( "filename" ) ).toString();
 
     if ( filename.startsWith( QStringLiteral( "http" ), Qt::CaseSensitivity::CaseInsensitive ) )
     {
-      i.index = new QgsRemoteCopcPointCloudIndex();
       i.uri = filename;
     }
     else
     {
-      i.index = new QgsCopcPointCloudIndex();
       i.uri = fInfo.absoluteDir().absoluteFilePath( filename );
     }
     i.count = map.value( QStringLiteral( "count" ) ).toLongLong();
     const QList<QVariant> bbox = map.value( QStringLiteral( "bbox" ) ).toList();
-    i.extent = QgsRectangle( bbox.at( 0 ).toDouble(),
-                             bbox.at( 1 ).toDouble(),
-                             bbox.at( 3 ).toDouble(),
-                             bbox.at( 4 ).toDouble()
-                           );
+    QgsRectangle extentWgs = QgsRectangle( bbox.at( 0 ).toDouble(),
+                                           bbox.at( 1 ).toDouble(),
+                                           bbox.at( 3 ).toDouble(),
+                                           bbox.at( 4 ).toDouble()
+                                         );
 
-    i.index->load( i.uri );
+    i.extent = transform.transformBoundingBox( extentWgs );
 
-    mSubIndexes.push_back( i );
+    mSubLayers.push_back( i );
 
     mPolygonBounds->addPart( QgsGeometry::fromRect( i.extent ) );
   }
-  mPolygonBounds->transform( transform );
   mExtent = mPolygonBounds->boundingBox();
 }
 
@@ -216,7 +214,7 @@ QgsGeometry QgsVpcProvider::polygonBounds() const
 {
   return *mPolygonBounds;
   QgsGeometry bounds = QgsGeometry::fromMultiPolygonXY( QgsMultiPolygonXY() );
-  for ( const auto &i : std::as_const( mSubIndexes ) )
+  for ( const auto &i : std::as_const( mSubLayers ) )
   {
     bounds.addPart( QgsGeometry::fromRect( i.extent ) );
   }
@@ -227,13 +225,37 @@ QVector<QgsPointCloudIndex *> QgsVpcProvider::indexes() const
 {
   QVector<QgsPointCloudIndex *> v;
 
-  for ( const auto &i : std::as_const( mSubIndexes ) )
+  for ( const auto &i : std::as_const( mSubLayers ) )
   {
-    if ( i.index )
-      v.append( i.index );
+    if ( i.index && i.index->isValid() )
+      v.append( i.index.get() );
   }
   return v;
 }
+
+void QgsVpcProvider::loadIndex( int i )
+{
+  QGIS_PROTECT_QOBJECT_THREAD_ACCESS
+
+  if ( i >= mSubLayers.size() )
+    return;
+
+  QgsPointCloudSubLayer &sl = mSubLayers[ i ];
+  // Index already loaded -> no need to load
+  if ( sl.index )
+    return;
+
+  if ( sl.uri.startsWith( QStringLiteral( "http" ), Qt::CaseSensitivity::CaseInsensitive ) )
+  {
+    sl.index.reset( new QgsRemoteCopcPointCloudIndex() );
+  }
+  else
+  {
+    sl.index.reset( new QgsCopcPointCloudIndex() );
+  }
+  sl.index->load( sl.uri );
+}
+
 
 QgsVpcProviderMetadata::QgsVpcProviderMetadata():
   QgsProviderMetadata( PROVIDER_KEY, PROVIDER_DESCRIPTION )
