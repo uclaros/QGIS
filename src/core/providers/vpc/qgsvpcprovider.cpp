@@ -165,12 +165,16 @@ void QgsVpcProvider::parseFile()
 
   if ( res.isEmpty() ||
        !res.contains( QLatin1String( "vpc" ) ) ||
+       !res.contains( QLatin1String( "metadata" ) ) ||
        !res.contains( QLatin1String( "files" ) )
      )
   {
     // invalid, todo: verbose error checks
     return;
   }
+  const QVariantMap meta = res.value( QStringLiteral( "metadata" ) ).toMap();
+  mCrs.createFromString( meta.value( QStringLiteral( "crs" ) ).toString() );
+  const QgsCoordinateTransform transform( QgsCoordinateReferenceSystem::fromEpsgId( 4326 ), mCrs, QgsCoordinateTransformContext() );
   const QList<QVariant> files = res.value( QStringLiteral( "files" ) ).toList();
 
   for ( const QVariant &f : files )
@@ -180,7 +184,16 @@ void QgsVpcProvider::parseFile()
     subIndex i;
     const QString filename = map.value( QStringLiteral( "filename" ) ).toString();
 
-    i.uri = fInfo.absoluteDir().absoluteFilePath( filename );
+    if ( filename.startsWith( QStringLiteral( "http" ), Qt::CaseSensitivity::CaseInsensitive ) )
+    {
+      i.index = new QgsRemoteCopcPointCloudIndex();
+      i.uri = filename;
+    }
+    else
+    {
+      i.index = new QgsCopcPointCloudIndex();
+      i.uri = fInfo.absoluteDir().absoluteFilePath( filename );
+    }
     i.count = map.value( QStringLiteral( "count" ) ).toLongLong();
     const QList<QVariant> bbox = map.value( QStringLiteral( "bbox" ) ).toList();
     i.extent = QgsRectangle( bbox.at( 0 ).toDouble(),
@@ -189,13 +202,13 @@ void QgsVpcProvider::parseFile()
                              bbox.at( 4 ).toDouble()
                            );
 
-    i.index = new QgsCopcPointCloudIndex();
     i.index->load( i.uri );
 
     mSubIndexes.push_back( i );
 
     mPolygonBounds->addPart( QgsGeometry::fromRect( i.extent ) );
   }
+  mPolygonBounds->transform( transform );
   mExtent = mPolygonBounds->boundingBox();
 }
 

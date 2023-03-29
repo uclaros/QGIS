@@ -46,6 +46,7 @@ QgsPointCloudLayerRenderer::QgsPointCloudLayerRenderer( QgsPointCloudLayer *laye
     return;
 
   mRenderer.reset( mLayer->renderer()->clone() );
+  mSubExtentsRenderer.reset( new QgsPointCloudExtentRenderer() );
 
   if ( mLayer->dataProvider()->index() )
   {
@@ -101,17 +102,12 @@ bool QgsPointCloudLayerRenderer::render()
     if ( canceled )
       break;
 
+    if ( !pc || !pc->isValid() )
+      continue;
+
     context.setOffset( pc->offset() );
     context.setScale( pc->scale() );
 
-
-//  // TODO cache!?
-//  QgsPointCloudIndex *pc = mLayer->dataProvider()->index();
-//  if ( !pc || !pc->isValid() )
-//  {
-//    mReadyToCompose = true;
-//    return false;
-//  }
 
     // if the previous layer render was relatively quick (e.g. less than 3 seconds), the we show any previously
     // cached version of the layer during rendering instead of the usual progressive updates
@@ -183,6 +179,10 @@ bool QgsPointCloudLayerRenderer::render()
       rootNodeExtentMapCoords = rootNodeExtentLayerCoords;
     }
 
+    // todo: check against the sub-index's exact bounds if available
+    if ( !rootNodeExtentMapCoords.intersects( context.renderContext().mapExtent() ) )
+      continue; // skip this index
+
     const double rootErrorInMapCoordinates = rootNodeExtentMapCoords.width() / pc->span(); // in map coords
 
     double mapUnitsPerPixel = context.renderContext().mapToPixel().mapUnitsPerPixel();
@@ -193,6 +193,16 @@ bool QgsPointCloudLayerRenderer::render()
       return false;
     }
     double rootErrorPixels = rootErrorInMapCoordinates / mapUnitsPerPixel; // in pixels
+
+    // when dealing with virtual point clouds, we want to render the individual extents when zoomed out
+    // and only use the selected renderer when zoomed in
+    if ( pcs.size() > 1 && rootErrorPixels < 20 )
+    {
+      mSubExtentsRenderer->startRender( context );
+      mSubExtentsRenderer->renderExtent( QgsGeometry::fromRect( rootNodeExtentMapCoords ), context );
+      mSubExtentsRenderer->stopRender( context );
+      continue;
+    }
     const QVector<IndexedPointCloudNode> nodes = traverseTree( pc, context.renderContext(), pc->root(), maximumError, rootErrorPixels );
 
     QgsPointCloudRequest request;
@@ -200,7 +210,6 @@ bool QgsPointCloudLayerRenderer::render()
 
     // drawing
     int nodesDrawn = 0;
-//  bool canceled = false;
 
     switch ( mRenderer->drawOrder2d() )
     {

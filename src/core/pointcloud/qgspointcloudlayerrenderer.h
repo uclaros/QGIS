@@ -29,6 +29,7 @@
 #include "qgspointcloudindex.h"
 #include "qgsidentifycontext.h"
 #include "qgspointcloudrenderer.h"
+#include "qgspointcloudextentrenderer.h"
 #include "qgsmapclippingregion.h"
 #include "qgsrasterinterface.h"
 
@@ -77,6 +78,7 @@ class CORE_EXPORT QgsPointCloudLayerRenderer: public QgsMapLayerRenderer
     QgsPointCloudLayer *mLayer = nullptr;
 
     std::unique_ptr< QgsPointCloudRenderer > mRenderer;
+    std::unique_ptr< QgsPointCloudExtentRenderer > mSubExtentsRenderer;
 
     QgsVector3D mScale;
     QgsVector3D mOffset;
