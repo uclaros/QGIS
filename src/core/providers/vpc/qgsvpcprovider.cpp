@@ -27,8 +27,10 @@
 #include "qgsprovidersublayerdetails.h"
 #include "qgsproviderutils.h"
 #include "qgsthreadingutils.h"
-#include "qgsjsonutils.h"
+#include <nlohmann/json.hpp>
+#include "qgsgeometry.h"
 #include "qgsmultipolygon.h"
+#include "qgscoordinatetransform.h"
 
 #include <QIcon>
 
@@ -53,14 +55,9 @@ QgsVpcProvider::QgsVpcProvider(
   if ( QgsApplication::profiler()->groupIsActive( QStringLiteral( "projectload" ) ) )
     profile = std::make_unique< QgsScopedRuntimeProfile >( tr( "Open data source" ), QStringLiteral( "projectload" ) );
 
-//  loadIndex( );
   mPolygonBounds.reset( new QgsGeometry( new QgsMultiPolygon() ) );
 
   parseFile();
-  if ( mIndex && !mIndex->isValid() )
-  {
-    appendError( mIndex->error() );
-  }
 }
 
 QgsVpcProvider::~QgsVpcProvider() = default;
@@ -159,53 +156,103 @@ void QgsVpcProvider::parseFile()
   QFile file( dataSourceUri() );
   const QFileInfo fInfo( file );
 
+  nlohmann::json data;
   if ( file.open( QFile::ReadOnly ) )
   {
-    res = QgsJsonUtils::parseJson( file.readAll() ).toMap();
+    try
+    {
+      data = json::parse( file.readAll().toStdString() );
+    }
+    catch ( std::exception &e )
+    {
+      appendError( QgsErrorMessage( QStringLiteral( "JSON parsing error: %1" ).arg( QString::fromStdString( e.what() ) ), QString() ) );
+      return;
+    }
   }
 
-  if ( res.isEmpty() ||
-       !res.contains( QLatin1String( "vpc" ) ) ||
-       !res.contains( QLatin1String( "metadata" ) ) ||
-       !res.contains( QLatin1String( "files" ) )
-     )
+  if ( data["type"] != "FeatureCollection" ||
+       !data.contains( "features" ) )
   {
-    // invalid, todo: verbose error checks
+    appendError( QgsErrorMessage( QStringLiteral( "Invalid VPC file" ), QString( "asd" ) ) );
     return;
   }
-  const QVariantMap meta = res.value( QStringLiteral( "metadata" ) ).toMap();
-  mCrs.createFromString( meta.value( QStringLiteral( "crs" ) ).toString() );
-  const QgsCoordinateTransform transform( QgsCoordinateReferenceSystem::fromEpsgId( 4326 ), mCrs, QgsCoordinateTransformContext() );
-  const QList<QVariant> files = res.value( QStringLiteral( "files" ) ).toList();
 
-  for ( const QVariant &f : files )
+  for ( const auto &f : data["features"] )
   {
-    QVariantMap map = f.toMap();
-
-    QgsPointCloudSubLayer i;
-    const QString filename = map.value( QStringLiteral( "filename" ) ).toString();
-
-    if ( filename.startsWith( QStringLiteral( "http" ), Qt::CaseSensitivity::CaseInsensitive ) )
+    if ( !f.contains( "type" ) || f["type"] != "Feature" ||
+         !f.contains( "stac_version" ) ||
+         !f.contains( "assets" ) || !f["assets"].is_object() ||
+         !f.contains( "properties" ) || !f["properties"].is_object() )
     {
-      i.uri = filename;
+      QgsDebugMsg( QStringLiteral( "Malformed STAC item: %1" ).arg( QString::fromStdString( f ) ) );
+      continue;
+    }
+
+    if ( f["stac_version"] != "1.0.0" )
+    {
+      QgsDebugMsg( QStringLiteral( "Unsupported STAC version: %1" ).arg( QString::fromStdString( f["stac_version"] ) ) );
+      continue;
+    }
+
+    nlohmann::json firstAsset = *f["assets"].begin();
+
+    QgsPointCloudSubLayer si;
+
+    si.uri = QString::fromStdString( firstAsset["href"] );
+    if ( f["properties"].contains( "pc:count" ) )
+      si.count = f["properties"]["pc:count"];
+
+    if ( !mCrs.isValid() )
+    {
+      if ( f["properties"].contains( "proj:epsg" ) )
+        mCrs.createFromSrsId( f["properties"]["proj:epsg"].get<long>() );
+      else if ( f["properties"].contains( "proj:wkt2" ) )
+        mCrs.createFromString( QString::fromStdString( f["properties"]["proj:wkt2"] ) );
+    }
+
+    if ( f["properties"].contains( "proj:bbox" ) )
+    {
+      nlohmann::json nativeBbox = f["properties"]["proj:bbox"];
+      si.extent = QgsRectangle( nativeBbox[0].get<double>(), nativeBbox[1].get<double>(),
+                                nativeBbox[3].get<double>(), nativeBbox[4].get<double>() );
+    }
+    else if ( f.contains( "bbox" ) && mCrs.isValid() )
+    {
+      nlohmann::json bboxWgs = f["bbox"];
+      QgsRectangle bbox = QgsRectangle( bboxWgs[0].get<double>(), bboxWgs[1].get<double>(),
+                                        bboxWgs[2].get<double>(), bboxWgs[3].get<double>() );
+
+      QgsCoordinateTransform transform( QgsCoordinateReferenceSystem::fromEpsgId( 4326 ), mCrs, QgsCoordinateTransformContext() );
+      try
+      {
+        si.extent = transform.transformBoundingBox( bbox );
+      }
+      catch ( ... )
+      {
+        QgsDebugMsg( QStringLiteral( "Cannot transform bbox to layer crs." ) );
+        continue;
+      }
     }
     else
     {
-      i.uri = fInfo.absoluteDir().absoluteFilePath( filename );
+      QgsDebugMsg( QStringLiteral( "Missing extent information." ) );
+      continue;
     }
-    i.count = map.value( QStringLiteral( "count" ) ).toLongLong();
-    const QList<QVariant> bbox = map.value( QStringLiteral( "bbox" ) ).toList();
-    QgsRectangle extentWgs = QgsRectangle( bbox.at( 0 ).toDouble(),
-                                           bbox.at( 1 ).toDouble(),
-                                           bbox.at( 3 ).toDouble(),
-                                           bbox.at( 4 ).toDouble()
-                                         );
 
-    i.extent = transform.transformBoundingBox( extentWgs );
+    if ( si.uri.startsWith( QLatin1String( "./" ) ) )
+    {
+      // resolve relative path
+      si.uri = fInfo.absoluteDir().absoluteFilePath( si.uri );
+    }
 
-    mSubLayers.push_back( i );
+    for ( auto &schemaItem : f["properties"]["pc:schemas"] )
+    {
+      // todo: handle attributes
+//          vpcf.schema.push_back(VirtualPointCloud::SchemaItem(schemaItem["name"], schemaItem["type"], schemaItem["size"].get<int>()));
+    }
 
-    mPolygonBounds->addPart( QgsGeometry::fromRect( i.extent ) );
+    mSubLayers.push_back( si );
+    mPolygonBounds->addPart( QgsGeometry::fromRect( si.extent ) );
   }
   mExtent = mPolygonBounds->boundingBox();
 }
