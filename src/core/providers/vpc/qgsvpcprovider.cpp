@@ -20,7 +20,9 @@
 #include "qgsproviderregistry.h"
 #include "qgsvpcprovider.h"
 #include "qgscopcpointcloudindex.h"
+#include "qgseptpointcloudindex.h"
 #include "qgsremotecopcpointcloudindex.h"
+#include "qgsremoteeptpointcloudindex.h"
 #include "qgspointcloudsublayer.h"
 #include "qgsruntimeprofiler.h"
 #include "qgsapplication.h"
@@ -294,11 +296,17 @@ void QgsVpcProvider::loadIndex( int i )
 
   if ( sl.uri.startsWith( QStringLiteral( "http" ), Qt::CaseSensitivity::CaseInsensitive ) )
   {
-    sl.index.reset( new QgsRemoteCopcPointCloudIndex() );
+    if ( sl.uri.endsWith( QStringLiteral( "copc.laz" ), Qt::CaseSensitivity::CaseInsensitive ) )
+      sl.index.reset( new QgsRemoteCopcPointCloudIndex() );
+    else if ( sl.uri.endsWith( QStringLiteral( "ept.json" ), Qt::CaseSensitivity::CaseInsensitive ) )
+      sl.index.reset( new QgsRemoteEptPointCloudIndex() );
   }
   else
   {
-    sl.index.reset( new QgsCopcPointCloudIndex() );
+    if ( sl.uri.endsWith( QStringLiteral( "copc.laz" ), Qt::CaseSensitivity::CaseInsensitive ) )
+      sl.index.reset( new QgsCopcPointCloudIndex() );
+    else if ( sl.uri.endsWith( QStringLiteral( "ept.json" ), Qt::CaseSensitivity::CaseInsensitive ) )
+      sl.index.reset( new QgsEptPointCloudIndex() );
   }
   sl.index->load( sl.uri );
 }
