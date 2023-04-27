@@ -363,6 +363,37 @@ void addQLayerComponentsToHierarchy( Qt3DCore::QEntity *entity, const QVector<Qt
 void Qgs3DMapScene::updateScene()
 {
   QgsEventTracing::addEvent( QgsEventTracing::Instant, QStringLiteral( "3D" ), QStringLiteral( "Update Scene" ) );
+
+  const QSize size = mEngine->size();
+  const int screenSize = std::max( size.width(), size.height() );
+  const float fov = mCameraController->camera()->fieldOfView();
+  const QVector3D &cameraPosition = mCameraController->camera()->position();
+  for ( const auto &vpce : std::as_const( mVirtualPointCloudEntities ) )
+  {
+    QgsVirtualPointCloudProvider *provider = vpce->provider();
+
+    const auto subIndexes = provider->subIndexes();
+    for ( int i = 0; i < subIndexes->size(); ++i )
+    {
+      const auto &bbox = vpce->boundingBox( i );
+      // magic number 256 is the common span value for a COPC root node
+      const float epsilon = std::min( bbox.xExtent(), bbox.yExtent() ) / 256;
+      const float distance = bbox.distanceFromPoint( cameraPosition );
+      // TODO: factor this into qgs3dutils?
+      const float sse = epsilon * screenSize / ( 2 * distance * tan( fov * M_PI / ( 2 * 180 ) ) );
+      if ( i == 0 )
+        qDebug() << sse ;
+
+      // todo: decide on magic value .2 (maybe relate to tiles sizes?)
+      const bool displayAsBbox = sse < .2;
+      if ( !displayAsBbox && !subIndexes->at( i ).index() )
+        provider->loadSubIndex( i );
+
+      vpce->renderSubIndexBbox( i, displayAsBbox );
+    }
+    vpce->updateBboxEntity();
+  }
+
   for ( QgsChunkedEntity *entity : std::as_const( mChunkEntities ) )
   {
     if ( entity->isEnabled() )
@@ -732,8 +763,9 @@ void Qgs3DMapScene::addLayerEntity( QgsMapLayer *layer )
 
       if ( QgsVirtualPointCloudEntity *virtualPointCloudEntity = qobject_cast<QgsVirtualPointCloudEntity *>( newEntity ) )
       {
-        QgsVirtualPointCloudProvider *provider = qobject_cast<QgsVirtualPointCloudProvider *>( layer->dataProvider() );
+        mVirtualPointCloudEntities.append( virtualPointCloudEntity );
 
+        QgsVirtualPointCloudProvider *provider = qobject_cast<QgsVirtualPointCloudProvider *>( layer->dataProvider() );
         virtualPointCloudEntity->createChunkedEntitiesForLoadedSubIndexes();
         const auto chunkedEntities = virtualPointCloudEntity->chunkedEntities();
         for ( const auto &ce : chunkedEntities )
@@ -751,38 +783,6 @@ void Qgs3DMapScene::addLayerEntity( QgsMapLayer *layer )
           addNewChunkedEntity( newChildChunkedEntity );
           virtualPointCloudEntity->updateBboxEntity();
           onCameraChanged();
-        } );
-
-        connect( mCameraController, &QgsCameraController::cameraChanged, this, [ = ]()
-        {
-          const QSize size = mEngine->size();
-          float screenSize = std::max( size.width(), size.height() ); // TODO: is this correct?
-          float fov = mCameraController->camera()->fieldOfView();
-          QVector3D cameraPosition = mCameraController->camera()->position();
-
-          const auto subIndexes = provider->subIndexes();
-          for ( int i = 0; i < subIndexes->size(); ++i )
-          {
-            const QgsRectangle extent = subIndexes->at( i ).extent();
-
-            // TODO: reverse transform camera pos once instead of all bboxes
-            const auto bbox = Qgs3DUtils::layerToWorldExtent( extent, 200, 220, layer->crs(), mMap.origin(), mMap.crs(), mMap.transformContext() );
-            // magic number 256 is the span value for a COPC root node
-            float epsilon = std::min( bbox.xExtent(), bbox.yExtent() ) / 256;
-            float distance = bbox.distanceFromPoint( cameraPosition );
-            // TODO: factor this into qgs3dutils?
-            const float sse = epsilon * screenSize / ( 2 * distance * tan( fov * M_PI / ( 2 * 180 ) ) );
-            if ( i == 0 )
-              qDebug() << sse ;
-
-            // todo: decide on magic value .2 (maybe relate to tiles sizes?)
-            const bool displayAsBbox = sse < .2;
-            if ( !displayAsBbox && !subIndexes->at( i ).index() )
-              provider->loadSubIndex( i );
-
-            virtualPointCloudEntity->renderSubIndexBbox( i, displayAsBbox );
-          }
-          virtualPointCloudEntity->updateBboxEntity();
         } );
       }
     }
@@ -830,6 +830,7 @@ void Qgs3DMapScene::removeLayerEntity( QgsMapLayer *layer )
       mChunkEntities.removeOne( chunkedEntity );
       chunkedEntity->deleteLater();
     }
+    mVirtualPointCloudEntities.removeOne( vpcNewEntity );
   }
 
   if ( entity )

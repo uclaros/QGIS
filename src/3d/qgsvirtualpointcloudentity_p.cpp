@@ -14,6 +14,7 @@
  ***************************************************************************/
 
 #include "qgsvirtualpointcloudentity_p.h"
+#include "qgsvirtualpointcloudprovider.h"
 #include "qgspointcloudlayerchunkloader_p.h"
 
 #include <QElapsedTimer>
@@ -40,7 +41,7 @@ typedef Qt3DCore::QBuffer Qt3DQBuffer;
 ///@cond PRIVATE
 
 
-QgsVirtualPointCloudEntity::QgsVirtualPointCloudEntity( QVector<QgsPointCloudSubIndex> *subIndexes,
+QgsVirtualPointCloudEntity::QgsVirtualPointCloudEntity( QgsPointCloudLayer *layer, QVector<QgsPointCloudSubIndex> *subIndexes,
     const Qgs3DMapSettings &map,
     const QgsCoordinateTransform &coordinateTransform,
     QgsPointCloud3DSymbol *symbol,
@@ -50,6 +51,7 @@ QgsVirtualPointCloudEntity::QgsVirtualPointCloudEntity( QVector<QgsPointCloudSub
     double zValueOffset,
     int pointBudget )
   : Qt3DCore::QEntity( nullptr )
+  , mLayer( layer )
   , mSubIndexes( subIndexes )
   , mMap( map )
   , mCoordinateTransform( coordinateTransform )
@@ -61,6 +63,10 @@ QgsVirtualPointCloudEntity::QgsVirtualPointCloudEntity( QVector<QgsPointCloudSub
 {
   mSymbol.reset( symbol );
   mBboxesEntity = new QgsChunkBoundsEntity( this );
+  for ( int i = 0; i < mSubIndexes->size(); ++i )
+  {
+    mBboxes << Qgs3DUtils::mapToWorldExtent( mSubIndexes->at( i ).extent(), 200., 220., mMap.origin() ); // TODO: use real z range
+  }
   updateBboxEntity();
 }
 
@@ -73,6 +79,16 @@ QgsVirtualPointCloudEntity::~QgsVirtualPointCloudEntity()
 QList<QgsChunkedEntity *> QgsVirtualPointCloudEntity::chunkedEntities() const
 {
   return mChunkedEntities;
+}
+
+QgsVirtualPointCloudProvider *QgsVirtualPointCloudEntity::provider() const
+{
+  return qobject_cast<QgsVirtualPointCloudProvider *>( mLayer->dataProvider() );
+}
+
+QgsAABB QgsVirtualPointCloudEntity::boundingBox( int i ) const
+{
+  return mBboxes.at( i );
 }
 
 void QgsVirtualPointCloudEntity::createChunkedEntitiesForLoadedSubIndexes()
@@ -124,7 +140,7 @@ void QgsVirtualPointCloudEntity::updateBboxEntity()
     if ( mChunkedEntitiesMap.contains( i ) && mChunkedEntitiesMap[i]->isEnabled() )
       continue;
 
-    bboxes << Qgs3DUtils::mapToWorldExtent( mSubIndexes->at( i ).extent(), 200., 220., mMap.origin() ); // TODO: use real z range
+    bboxes << mBboxes.at( i );
   }
 
   mBboxesEntity->setBoxes( bboxes );

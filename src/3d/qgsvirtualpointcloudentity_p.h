@@ -42,6 +42,8 @@ class QgsChunkQueueJob;
 class QgsChunkLoaderFactory;
 class QgsChunkBoundsEntity;
 class QgsChunkQueueJobFactory;
+class QgsPointCloudLayer;
+class QgsVirtualPointCloudProvider;
 
 namespace QgsRayCastingUtils
 {
@@ -76,13 +78,15 @@ class QgsVirtualPointCloudEntity : public Qt3DCore::QEntity
     Q_OBJECT
   public:
     //! Constructs
-    QgsVirtualPointCloudEntity( QVector<QgsPointCloudSubIndex> *subIndexes, const Qgs3DMapSettings &map, const QgsCoordinateTransform &coordinateTransform, QgsPointCloud3DSymbol *symbol, float maxScreenError, bool showBoundingBoxes,
+    QgsVirtualPointCloudEntity( QgsPointCloudLayer *layer, QVector<QgsPointCloudSubIndex> *subIndexes, const Qgs3DMapSettings &map, const QgsCoordinateTransform &coordinateTransform, QgsPointCloud3DSymbol *symbol, float maxScreenError, bool showBoundingBoxes,
                                 double zValueScale, double zValueOffset, int pointBudget );
     ~QgsVirtualPointCloudEntity() override;
 
     void createChunkedEntitiesForLoadedSubIndexes();
     void updateBboxEntity();
     QList<QgsChunkedEntity *> chunkedEntities() const;
+    QgsVirtualPointCloudProvider *provider() const;
+    QgsAABB boundingBox( int i ) const;
 
   signals:
     //! Emitted when a new point cloud chunked entity has been created for a sub index
@@ -93,10 +97,12 @@ class QgsVirtualPointCloudEntity : public Qt3DCore::QEntity
     void renderSubIndexBbox( const int i, const bool asBbox );
 
   private:
+    QgsPointCloudLayer *mLayer = nullptr;
     QList<QgsChunkedEntity *> mChunkedEntities;
     QMap<int, QgsChunkedEntity *> mChunkedEntitiesMap;
     const QVector<QgsPointCloudSubIndex> *mSubIndexes;
     QgsChunkBoundsEntity *mBboxesEntity = nullptr;
+    QList<QgsAABB> mBboxes;
     const Qgs3DMapSettings &mMap;
     QgsCoordinateTransform mCoordinateTransform;
     QgsPointCloudIndex *mPointCloudIndex;
