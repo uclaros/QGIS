@@ -368,30 +368,32 @@ void Qgs3DMapScene::updateScene()
   const int screenSize = std::max( size.width(), size.height() );
   const float fov = mCameraController->camera()->fieldOfView();
   const QVector3D &cameraPosition = mCameraController->camera()->position();
-  for ( const auto &vpce : std::as_const( mVirtualPointCloudEntities ) )
+  for ( QgsVirtualPointCloudEntity *entity : std::as_const( mVirtualPointCloudEntities ) )
   {
-    QgsVirtualPointCloudProvider *provider = vpce->provider();
+    QgsVirtualPointCloudProvider *provider = entity->provider();
 
-    const auto subIndexes = provider->subIndexes();
+    const QList<QgsPointCloudSubIndex *> subIndexes = provider->subIndexes();
     for ( int i = 0; i < subIndexes.size(); ++i )
     {
-      const auto &bbox = vpce->boundingBox( i );
+      const QgsAABB &bbox = entity->boundingBox( i );
       // magic number 256 is the common span value for a COPC root node
-      const float epsilon = std::min( bbox.xExtent(), bbox.yExtent() ) / 256;
+      constexpr int SPAN = 256;
+      const float epsilon = std::min( bbox.xExtent(), bbox.yExtent() ) / SPAN;
       const float distance = bbox.distanceFromPoint( cameraPosition );
       // TODO: factor this into qgs3dutils?
       const float sse = epsilon * screenSize / ( 2 * distance * tan( fov * M_PI / ( 2 * 180 ) ) );
       if ( i == 0 )
         qDebug() << sse ;
 
-      // todo: decide on magic value .2 (maybe relate to tiles sizes?)
-      const bool displayAsBbox = sse < .2;
+      // todo: decide on this value
+      constexpr float THRESHOLD = .2;
+      const bool displayAsBbox = sse < THRESHOLD;
       if ( !displayAsBbox && !subIndexes.at( i )->index() )
         provider->loadSubIndex( i );
 
-      vpce->renderSubIndexBbox( i, displayAsBbox );
+      entity->renderSubIndexBbox( i, displayAsBbox );
     }
-    vpce->updateBboxEntity();
+    entity->updateBboxEntity();
   }
 
   for ( QgsChunkedEntity *entity : std::as_const( mChunkEntities ) )
@@ -628,13 +630,14 @@ void Qgs3DMapScene::updateCameraLens()
 void Qgs3DMapScene::onLayerRenderer3DChanged()
 {
   QgsMapLayer *layer = nullptr;
-  if ( QgsVirtualPointCloudProvider *vp = qobject_cast<QgsVirtualPointCloudProvider *>( sender() ) )
+  if ( QgsVirtualPointCloudProvider *senderProvider = qobject_cast<QgsVirtualPointCloudProvider *>( sender() ) )
   {
-    for ( const auto p : mLayerEntities.keys() )
+    const QList<QgsMapLayer *> mapLayers = mLayerEntities.keys();
+    for ( QgsMapLayer *mapLayer : mapLayers )
     {
-      if ( QgsVirtualPointCloudProvider *pp = qobject_cast<QgsVirtualPointCloudProvider *>( p->dataProvider() ) )
-        if ( pp == vp )
-          layer = p;
+      if ( QgsVirtualPointCloudProvider *mapLayerProvider = qobject_cast<QgsVirtualPointCloudProvider *>( mapLayer->dataProvider() ) )
+        if ( mapLayerProvider == senderProvider )
+          layer = mapLayer;
     }
   }
   if ( !layer )
@@ -767,8 +770,8 @@ void Qgs3DMapScene::addLayerEntity( QgsMapLayer *layer )
 
         QgsVirtualPointCloudProvider *provider = qobject_cast<QgsVirtualPointCloudProvider *>( layer->dataProvider() );
         virtualPointCloudEntity->createChunkedEntitiesForLoadedSubIndexes();
-        const auto chunkedEntities = virtualPointCloudEntity->chunkedEntities();
-        for ( const auto &ce : chunkedEntities )
+        const QList<QgsChunkedEntity *> chunkedEntities = virtualPointCloudEntity->chunkedEntities();
+        for ( QgsChunkedEntity *ce : chunkedEntities )
         {
           ce->setParent( virtualPointCloudEntity );
           needsSceneUpdate = true;
