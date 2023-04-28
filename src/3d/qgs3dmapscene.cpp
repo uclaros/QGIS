@@ -373,7 +373,7 @@ void Qgs3DMapScene::updateScene()
     QgsVirtualPointCloudProvider *provider = vpce->provider();
 
     const auto subIndexes = provider->subIndexes();
-    for ( int i = 0; i < subIndexes->size(); ++i )
+    for ( int i = 0; i < subIndexes.size(); ++i )
     {
       const auto &bbox = vpce->boundingBox( i );
       // magic number 256 is the common span value for a COPC root node
@@ -386,7 +386,7 @@ void Qgs3DMapScene::updateScene()
 
       // todo: decide on magic value .2 (maybe relate to tiles sizes?)
       const bool displayAsBbox = sse < .2;
-      if ( !displayAsBbox && !subIndexes->at( i ).index() )
+      if ( !displayAsBbox && !subIndexes.at( i )->index() )
         provider->loadSubIndex( i );
 
       vpce->renderSubIndexBbox( i, displayAsBbox );

@@ -22,7 +22,7 @@
 ///@cond PRIVATE
 
 
-QgsVirtualPointCloudEntity::QgsVirtualPointCloudEntity( QgsPointCloudLayer *layer, QVector<QgsPointCloudSubIndex> *subIndexes,
+QgsVirtualPointCloudEntity::QgsVirtualPointCloudEntity( QgsPointCloudLayer *layer, const QList<QgsPointCloudSubIndex *> subIndexes,
     const Qgs3DMapSettings &map,
     const QgsCoordinateTransform &coordinateTransform,
     QgsPointCloud3DSymbol *symbol,
@@ -44,9 +44,9 @@ QgsVirtualPointCloudEntity::QgsVirtualPointCloudEntity( QgsPointCloudLayer *laye
 {
   mSymbol.reset( symbol );
   mBboxesEntity = new QgsChunkBoundsEntity( this );
-  for ( int i = 0; i < mSubIndexes->size(); ++i )
+  for ( int i = 0; i < mSubIndexes.size(); ++i )
   {
-    mBboxes << Qgs3DUtils::mapToWorldExtent( mSubIndexes->at( i ).extent(), mSubIndexes->at( i ).zRange().lower(), mSubIndexes->at( i ).zRange().upper(), mMap.origin() );
+    mBboxes << Qgs3DUtils::mapToWorldExtent( mSubIndexes.at( i )->extent(), mSubIndexes.at( i )->zRange().lower(), mSubIndexes.at( i )->zRange().upper(), mMap.origin() );
   }
   updateBboxEntity();
 }
@@ -77,13 +77,13 @@ void QgsVirtualPointCloudEntity::createChunkedEntitiesForLoadedSubIndexes()
   if ( !mChunkedEntities.isEmpty() )
     return;
 
-  for ( int i = 0; i < mSubIndexes->size(); ++i )
+  for ( int i = 0; i < mSubIndexes.size(); ++i )
   {
-    const QgsPointCloudSubIndex si = mSubIndexes->at( i );
-    if ( !si.index() )
+    QgsPointCloudSubIndex *si = mSubIndexes.at( i );
+    if ( !si->index() )
       continue;
 
-    QgsPointCloudLayerChunkedEntity *entity = new QgsPointCloudLayerChunkedEntity( si.index(),
+    QgsPointCloudLayerChunkedEntity *entity = new QgsPointCloudLayerChunkedEntity( si->index(),
         mMap,
         mCoordinateTransform,
         static_cast< QgsPointCloud3DSymbol * >( mSymbol->clone() ),
@@ -99,7 +99,7 @@ void QgsVirtualPointCloudEntity::createChunkedEntitiesForLoadedSubIndexes()
 
 void QgsVirtualPointCloudEntity::onSubIndexLoaded( int i )
 {
-  QgsPointCloudLayerChunkedEntity *newChunkedEntity = new QgsPointCloudLayerChunkedEntity( mSubIndexes->at( i ).index(),
+  QgsPointCloudLayerChunkedEntity *newChunkedEntity = new QgsPointCloudLayerChunkedEntity( mSubIndexes.at( i )->index(),
       mMap,
       mCoordinateTransform,
       static_cast< QgsPointCloud3DSymbol * >( mSymbol->clone() ),
@@ -116,7 +116,7 @@ void QgsVirtualPointCloudEntity::onSubIndexLoaded( int i )
 void QgsVirtualPointCloudEntity::updateBboxEntity()
 {
   QList<QgsAABB> bboxes;
-  for ( int i = 0; i < mSubIndexes->size(); ++i )
+  for ( int i = 0; i < mSubIndexes.size(); ++i )
   {
     if ( mChunkedEntitiesMap.contains( i ) && mChunkedEntitiesMap[i]->isEnabled() )
       continue;

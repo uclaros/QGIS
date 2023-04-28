@@ -968,16 +968,16 @@ void QgsPointCloudLayer::loadIndexesForRenderContext( QgsRenderContext &renderer
       QgsDebugMsg( QStringLiteral( "Transformation of extent failed!" ) );
     }
 
-    const QVector<QgsPointCloudSubIndex> &subIndex = *mDataProvider->subIndexes();
-    for ( int i = 0; i < subIndex.size(); ++i )
+    const QList<QgsPointCloudSubIndex *> subIndexes = mDataProvider->subIndexes();
+    for ( int i = 0; i < subIndexes.size(); ++i )
     {
-      const QgsPointCloudSubIndex &si = subIndex.at( i );
+      QgsPointCloudSubIndex *si = subIndexes.at( i );
       // no need to load as it's there
-      if ( si.index() )
+      if ( si->index() )
         continue;
 
-      if ( si.extent().intersects( renderExtent ) &&
-           renderExtent.width() < si.extent().width() )
+      if ( si->extent().intersects( renderExtent ) &&
+           renderExtent.width() < si->extent().width() )
       {
         mDataProvider->loadSubIndex( i );
       }

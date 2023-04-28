@@ -58,7 +58,10 @@ QgsVirtualPointCloudProvider::QgsVirtualPointCloudProvider(
   parseFile();
 }
 
-QgsVirtualPointCloudProvider::~QgsVirtualPointCloudProvider() = default;
+QgsVirtualPointCloudProvider::~QgsVirtualPointCloudProvider()
+{
+  qDeleteAll( mSubIndexes );
+}
 
 QgsPointCloudDataProvider::Capabilities QgsVirtualPointCloudProvider::capabilities() const
 {
@@ -93,7 +96,7 @@ bool QgsVirtualPointCloudProvider::isValid() const
 {
   QGIS_PROTECT_QOBJECT_THREAD_ACCESS
 
-  return !mSubLayers.isEmpty();
+  return !mSubIndexes.isEmpty();
 }
 
 QString QgsVirtualPointCloudProvider::name() const
@@ -363,8 +366,8 @@ void QgsVirtualPointCloudProvider::parseFile()
 
     mPolygonBounds->addPart( geometry );
     mPointCount += count;
-    QgsPointCloudSubIndex si( uri, geometry, extent, zRange, count );
-    mSubLayers.push_back( si );
+    QgsPointCloudSubIndex *si = new QgsPointCloudSubIndex( uri, geometry, extent, zRange, count );
+    mSubIndexes.push_back( si );
   }
   mExtent = mPolygonBounds->boundingBox();
   populateAttributeCollection( attributeNames );
@@ -379,37 +382,37 @@ void QgsVirtualPointCloudProvider::loadSubIndex( int i )
 {
   QGIS_PROTECT_QOBJECT_THREAD_ACCESS
 
-  if ( i >= mSubLayers.size() || i < 0 )
+  if ( i >= mSubIndexes.size() || i < 0 )
     return;
 
-  QgsPointCloudSubIndex &sl = mSubLayers[ i ];
+  QgsPointCloudSubIndex *sl = mSubIndexes[ i ];
   // Index already loaded -> no need to load
-  if ( sl.index() )
+  if ( sl->index() )
     return;
 
-  if ( sl.uri().startsWith( QStringLiteral( "http" ), Qt::CaseSensitivity::CaseInsensitive ) )
+  if ( sl->uri().startsWith( QStringLiteral( "http" ), Qt::CaseSensitivity::CaseInsensitive ) )
   {
-    if ( sl.uri().endsWith( QStringLiteral( "copc.laz" ), Qt::CaseSensitivity::CaseInsensitive ) )
-      sl.setIndex( new QgsRemoteCopcPointCloudIndex() );
-    else if ( sl.uri().endsWith( QStringLiteral( "ept.json" ), Qt::CaseSensitivity::CaseInsensitive ) )
-      sl.setIndex( new QgsRemoteEptPointCloudIndex() );
+    if ( sl->uri().endsWith( QStringLiteral( "copc.laz" ), Qt::CaseSensitivity::CaseInsensitive ) )
+      sl->setIndex( new QgsRemoteCopcPointCloudIndex() );
+    else if ( sl->uri().endsWith( QStringLiteral( "ept.json" ), Qt::CaseSensitivity::CaseInsensitive ) )
+      sl->setIndex( new QgsRemoteEptPointCloudIndex() );
   }
   else
   {
-    if ( sl.uri().endsWith( QStringLiteral( "copc.laz" ), Qt::CaseSensitivity::CaseInsensitive ) )
-      sl.setIndex( new QgsCopcPointCloudIndex() );
-    else if ( sl.uri().endsWith( QStringLiteral( "ept.json" ), Qt::CaseSensitivity::CaseInsensitive ) )
-      sl.setIndex( new QgsEptPointCloudIndex() );
+    if ( sl->uri().endsWith( QStringLiteral( "copc.laz" ), Qt::CaseSensitivity::CaseInsensitive ) )
+      sl->setIndex( new QgsCopcPointCloudIndex() );
+    else if ( sl->uri().endsWith( QStringLiteral( "ept.json" ), Qt::CaseSensitivity::CaseInsensitive ) )
+      sl->setIndex( new QgsEptPointCloudIndex() );
   }
 
-  if ( !sl.index() )
+  if ( !sl->index() )
     return;
 
-  sl.index()->load( sl.uri() );
+  sl->index()->load( sl->uri() );
 
   // if expression is broken or index is missing a required field, set to "false" so it returns no points
-  if ( !sl.index()->setSubsetString( mSubsetString ) )
-    sl.index()->setSubsetString( QStringLiteral( "false" ) );
+  if ( !sl->index()->setSubsetString( mSubsetString ) )
+    sl->index()->setSubsetString( QStringLiteral( "false" ) );
 
   emit subIndexLoaded( i );
 }
@@ -481,14 +484,14 @@ bool QgsVirtualPointCloudProvider::setSubsetString( const QString &subset, bool 
 
   Q_UNUSED( updateFeatureCount )
 
-  for ( const auto &i : std::as_const( mSubLayers ) )
+  for ( QgsPointCloudSubIndex *si : std::as_const( mSubIndexes ) )
   {
-    if ( !i.index() )
+    if ( !si->index() )
       continue;
 
     // if expression is broken or index is missing a required field, set to "false" so it returns no points
-    if ( !i.index()->setSubsetString( subset ) )
-      i.index()->setSubsetString( QStringLiteral( "false" ) );
+    if ( !si->index()->setSubsetString( subset ) )
+      si->index()->setSubsetString( QStringLiteral( "false" ) );
   }
 
   mSubsetString = subset;

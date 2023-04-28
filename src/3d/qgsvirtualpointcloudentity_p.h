@@ -51,7 +51,7 @@ class QgsVirtualPointCloudEntity : public Qt3DCore::QEntity
     Q_OBJECT
   public:
     //! Constructs
-    QgsVirtualPointCloudEntity( QgsPointCloudLayer *layer, QVector<QgsPointCloudSubIndex> *subIndexes, const Qgs3DMapSettings &map, const QgsCoordinateTransform &coordinateTransform, QgsPointCloud3DSymbol *symbol, float maxScreenError, bool showBoundingBoxes,
+    QgsVirtualPointCloudEntity( QgsPointCloudLayer *layer, const QList<QgsPointCloudSubIndex *> subIndexes, const Qgs3DMapSettings &map, const QgsCoordinateTransform &coordinateTransform, QgsPointCloud3DSymbol *symbol, float maxScreenError, bool showBoundingBoxes,
                                 double zValueScale, double zValueOffset, int pointBudget );
     ~QgsVirtualPointCloudEntity() override;
 
@@ -73,7 +73,7 @@ class QgsVirtualPointCloudEntity : public Qt3DCore::QEntity
     QgsPointCloudLayer *mLayer = nullptr;
     QList<QgsChunkedEntity *> mChunkedEntities;
     QMap<int, QgsChunkedEntity *> mChunkedEntitiesMap;
-    const QVector<QgsPointCloudSubIndex> *mSubIndexes;
+    const QList<QgsPointCloudSubIndex *> mSubIndexes;
     QgsChunkBoundsEntity *mBboxesEntity = nullptr;
     QList<QgsAABB> mBboxes;
     const Qgs3DMapSettings &mMap;
