@@ -196,6 +196,7 @@ void QgsVirtualPointCloudProvider::parseFile()
     qint64 count;
     QgsRectangle extent;
     QgsGeometry geometry;
+    QgsDoubleRange zRange;
 
 
     for ( const auto &asset : f["assets"] )
@@ -229,14 +230,45 @@ void QgsVirtualPointCloudProvider::parseFile()
     if ( f["properties"].contains( "proj:bbox" ) )
     {
       nlohmann::json nativeBbox = f["properties"]["proj:bbox"];
-      extent = QgsRectangle( nativeBbox[0].get<double>(), nativeBbox[1].get<double>(),
-                             nativeBbox[3].get<double>(), nativeBbox[4].get<double>() );
+      if ( nativeBbox.size() == 6 )
+      {
+        extent = QgsRectangle( nativeBbox[0].get<double>(), nativeBbox[1].get<double>(),
+                               nativeBbox[3].get<double>(), nativeBbox[4].get<double>() );
+        zRange = QgsDoubleRange( nativeBbox[2], nativeBbox[5] );
+      }
+      else if ( nativeBbox.size() == 4 )
+      {
+        extent = QgsRectangle( nativeBbox[0].get<double>(), nativeBbox[1].get<double>(),
+                               nativeBbox[2].get<double>(), nativeBbox[3].get<double>() );
+      }
+      else
+      {
+        QgsDebugMsg( QStringLiteral( "Malformed bounding box, skipping item." ) );
+        continue;
+      }
     }
     else if ( f.contains( "bbox" ) && mCrs.isValid() )
     {
       nlohmann::json bboxWgs = f["bbox"];
-      QgsRectangle bbox = QgsRectangle( bboxWgs[0].get<double>(), bboxWgs[1].get<double>(),
-                                        bboxWgs[2].get<double>(), bboxWgs[3].get<double>() );
+      QgsRectangle bbox;
+      bbox.setXMinimum( bboxWgs[0].get<double>() );
+      bbox.setYMinimum( bboxWgs[1].get<double>() );
+      if ( bboxWgs.size() == 6 )
+      {
+        bbox.setXMaximum( bboxWgs[3].get<double>() );
+        bbox.setYMaximum( bboxWgs[4].get<double>() );
+        zRange = QgsDoubleRange( bboxWgs[2], bboxWgs[5] );
+      }
+      else if ( bboxWgs.size() == 4 )
+      {
+        bbox.setXMaximum( bboxWgs[2].get<double>() );
+        bbox.setYMaximum( bboxWgs[3].get<double>() );
+      }
+      else
+      {
+        QgsDebugMsg( QStringLiteral( "Malformed bounding box, skipping item." ) );
+        continue;
+      }
 
       try
       {
@@ -244,13 +276,13 @@ void QgsVirtualPointCloudProvider::parseFile()
       }
       catch ( QgsCsException & )
       {
-        QgsDebugMsg( QStringLiteral( "Cannot transform bbox to layer crs." ) );
+        QgsDebugMsg( QStringLiteral( "Cannot transform bbox to layer crs, skipping item." ) );
         continue;
       }
     }
     else
     {
-      QgsDebugMsg( QStringLiteral( "Missing extent information." ) );
+      QgsDebugMsg( QStringLiteral( "Missing extent information, skipping item." ) );
       continue;
     }
 
@@ -291,14 +323,15 @@ void QgsVirtualPointCloudProvider::parseFile()
       }
       else
       {
-        QgsDebugMsg( QStringLiteral( "Unexpected geometry type: %1" ).arg( QString::fromStdString( geom.at( "type" ) ) ) );
+        QgsDebugMsg( QStringLiteral( "Unexpected geometry type: %1, skipping item." ).arg( QString::fromStdString( geom.at( "type" ) ) ) );
+        continue;
       }
       geometry = QgsGeometry::fromMultiPolygonXY( multiPolygon );
     }
     catch ( std::exception &e )
     {
-      QgsDebugMsg( QStringLiteral( "Malformed geometry item: %1" ).arg( QString::fromStdString( e.what() ) ) );
-      return;
+      QgsDebugMsg( QStringLiteral( "Malformed geometry item: %1, skipping item." ).arg( QString::fromStdString( e.what() ) ) );
+      continue;
     }
 
     if ( uri.startsWith( QLatin1String( "./" ) ) )
@@ -323,14 +356,14 @@ void QgsVirtualPointCloudProvider::parseFile()
       }
       catch ( QgsCsException & )
       {
-        QgsDebugMsg( QStringLiteral( "Cannot transform geometry to layer crs." ) );
+        QgsDebugMsg( QStringLiteral( "Cannot transform geometry to layer crs, skipping item." ) );
         continue;
       }
     }
 
     mPolygonBounds->addPart( geometry );
     mPointCount += count;
-    QgsPointCloudSubIndex si( uri, geometry, extent, count );
+    QgsPointCloudSubIndex si( uri, geometry, extent, zRange, count );
     mSubLayers.push_back( si );
   }
   mExtent = mPolygonBounds->boundingBox();

@@ -65,7 +65,7 @@ QgsVirtualPointCloudEntity::QgsVirtualPointCloudEntity( QgsPointCloudLayer *laye
   mBboxesEntity = new QgsChunkBoundsEntity( this );
   for ( int i = 0; i < mSubIndexes->size(); ++i )
   {
-    mBboxes << Qgs3DUtils::mapToWorldExtent( mSubIndexes->at( i ).extent(), 200., 220., mMap.origin() ); // TODO: use real z range
+    mBboxes << Qgs3DUtils::mapToWorldExtent( mSubIndexes->at( i ).extent(), mSubIndexes->at( i ).zRange().lower(), mSubIndexes->at( i ).zRange().upper(), mMap.origin() );
   }
   updateBboxEntity();
 }
