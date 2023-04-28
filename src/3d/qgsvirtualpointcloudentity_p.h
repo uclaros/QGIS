@@ -16,6 +16,7 @@
 #ifndef QGSVIRTUALPOINTCLOUDENTITY_P_H
 #define QGSVIRTUALPOINTCLOUDENTITY_P_H
 
+#define SIP_NO_FILE
 ///@cond PRIVATE
 
 //
@@ -27,44 +28,16 @@
 // version without notice, or even be removed.
 //
 
-#include "qgschunkedentity_p.h"
+#include <Qt3DCore/QEntity>
+
 #include "qgscoordinatetransform.h"
 #include "qgspointcloudsubindex.h"
-#include <Qt3DCore/QEntity>
-#include <numeric>
-
-#define SIP_NO_FILE
 
 class QgsAABB;
-class QgsChunkNode;
-class QgsChunkList;
-class QgsChunkQueueJob;
-class QgsChunkLoaderFactory;
+class QgsChunkedEntity;
 class QgsChunkBoundsEntity;
-class QgsChunkQueueJobFactory;
 class QgsPointCloudLayer;
 class QgsVirtualPointCloudProvider;
-
-namespace QgsRayCastingUtils
-{
-  class Ray3D;
-  struct RayCastContext;
-  struct RayHit;
-}
-
-#include <QVector3D>
-#include <QMatrix4x4>
-
-#include <QTime>
-
-//#include "qgschunknode_p.h"
-//#include "qgschunkloader_p.h"
-//#include "qgsfeature3dhandler_p.h"
-//#include "qgschunkedentity_p.h"
-//#include "qgspointcloud3dsymbol.h"
-//#include "qgspointcloud3dsymbol_p.h"
-//#include "qgspointcloudlayer3drenderer.h"
-
 class QgsPointCloud3DSymbol;
 class Qgs3DMapSettings;
 

@@ -16,27 +16,8 @@
 #include "qgsvirtualpointcloudentity_p.h"
 #include "qgsvirtualpointcloudprovider.h"
 #include "qgspointcloudlayerchunkloader_p.h"
-
-#include <QElapsedTimer>
-#include <QVector4D>
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-#include <Qt3DRender/QBuffer>
-typedef Qt3DRender::QBuffer Qt3DQBuffer;
-#else
-#include <Qt3DCore/QBuffer>
-typedef Qt3DCore::QBuffer Qt3DQBuffer;
-#endif
-
-#include "qgs3dutils.h"
 #include "qgschunkboundsentity_p.h"
-#include "qgschunklist_p.h"
-#include "qgschunkloader_p.h"
-#include "qgschunknode_p.h"
-#include "qgstessellatedpolygongeometry.h"
-
-#include "qgseventtracing.h"
-
-#include <queue>
+#include "qgs3dutils.h"
 
 ///@cond PRIVATE
 
