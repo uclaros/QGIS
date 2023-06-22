@@ -206,6 +206,8 @@ void Qgs3DMapScene::viewZoomFull()
   const double side = std::max( extent.width(), extent.height() );
   double d = side / 2 / std::tan( cameraController()->camera()->fieldOfView() / 2 * M_PI / 180 );
   d += yRange.isInfinite() ?  0. : yRange.upper();
+  if ( mTerrain )
+    d -= mTerrain->terrainElevationOffset();
   mCameraController->resetView( static_cast< float >( d ) );
   return;
 }
