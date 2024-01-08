@@ -123,7 +123,6 @@ Basic implementation of the labeling interface for mesh layer.
 #include "qgsmeshlayerlabeling.h"
 %End
   public:
-
     explicit QgsMeshLayerSimpleLabeling( const QgsPalLayerSettings &settings, bool labelFaces = false );
 %Docstring
 Constructs simple labeling configuration with given initial ``settings``.
