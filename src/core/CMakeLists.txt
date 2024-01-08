@@ -795,6 +795,8 @@ set(QGIS_CORE_SRCS
   mesh/qgstopologicalmesh.cpp
   mesh/qgsmeshadvancedediting.cpp
   mesh/qgsmeshforcebypolylines.cpp
+  mesh/qgsmeshlayerlabeling.cpp
+  mesh/qgsmeshlayerlabelprovider.cpp
 
   pointcloud/qgspointcloudattribute.cpp
   pointcloud/qgspointcloudattributebyramprenderer.cpp
@@ -897,6 +899,7 @@ set(QGIS_CORE_SRCS
   settings/qgssettingsentry.cpp
   settings/qgssettingsentrygroup.cpp
   settings/qgssettingsentryimpl.cpp
+  settings/qgssettingsproxy.cpp
   settings/qgssettingsregistry.cpp
   settings/qgssettingsregistrycore.cpp
   settings/qgssettingstree.cpp
@@ -1617,6 +1620,8 @@ set(QGIS_CORE_HDRS
   mesh/qgstopologicalmesh.h
   mesh/qgsmeshadvancedediting.h
   mesh/qgsmeshforcebypolylines.h
+  mesh/qgsmeshlayerlabeling.h
+  mesh/qgsmeshlayerlabelprovider.h
 
   pal/costcalculator.h
   pal/feature.h
@@ -1952,6 +1957,7 @@ set(QGIS_CORE_HDRS
   settings/qgssettingsentrygroup.h
   settings/qgssettingsentryenumflag.h
   settings/qgssettingsentryimpl.h
+  settings/qgssettingsproxy.h
   settings/qgssettingsregistry.h
   settings/qgssettingsregistrycore.h
   settings/qgssettingstree.h
