@@ -31,12 +31,17 @@ namespace Qt3DExtras
   class QPhongMaterial;
 }
 
+namespace QgsRayCastingUtils
+{
+  class RayHit;
+  class RayCastContext;
+}
+
 #include "qgs3dmapsettings.h"
 #include "qgs3danimationsettings.h"
 #include "qgs3dtypes.h"
 #include "qgsaabb.h"
 #include "qgsray3d.h"
-#include "qgsraycastingutils_p.h"
 
 #include <QSize>
 #include <Qt3DRender/QCamera>
