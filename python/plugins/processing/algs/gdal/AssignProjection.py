@@ -81,7 +81,7 @@ class AssignProjection(GdalAlgorithm):
         if inLayer is None:
             raise QgsProcessingException(self.invalidRasterError(parameters, self.INPUT))
 
-        fileName = inLayer.source()
+        fileName = GdalUtils.gdalSourceFromLayer(inLayer)
 
         crs = self.parameterAsCrs(parameters, self.CRS, context)
 
@@ -108,7 +108,7 @@ class AssignProjection(GdalAlgorithm):
             for l in context.project().mapLayers().values():
 
                 # check the source
-                if l.source() != fileName:
+                if GdalUtils.gdalSourceFromLayer(l) != fileName:
                     continue
 
                 # reload provider's data
@@ -120,7 +120,7 @@ class AssignProjection(GdalAlgorithm):
         for l in context.temporaryLayerStore().mapLayers().values():
 
             # check the source
-            if l.source() != fileName:
+            if GdalUtils.gdalSourceFromLayer(l) != fileName:
                 continue
 
             # reload provider's data

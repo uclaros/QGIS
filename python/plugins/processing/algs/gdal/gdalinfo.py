@@ -106,10 +106,10 @@ class gdalinfo(GdalAlgorithm):
             extra = self.parameterAsString(parameters, self.EXTRA, context)
             arguments.append(extra)
 
-        raster = self.parameterAsRasterLayer(parameters, self.INPUT, context)
-        if raster is None:
+        inLayer = self.parameterAsRasterLayer(parameters, self.INPUT, context)
+        if inLayer is None:
             raise QgsProcessingException(self.invalidRasterError(parameters, self.INPUT))
-        arguments.append(raster.source())
+        arguments.append(GdalUtils.gdalSourceFromLayer(inLayer))
         return [self.commandName(), GdalUtils.escapeAndJoin(arguments)]
 
     def processAlgorithm(self, parameters, context, feedback):

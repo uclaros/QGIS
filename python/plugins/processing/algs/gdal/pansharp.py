@@ -121,8 +121,8 @@ class pansharp(GdalAlgorithm):
             raise QgsProcessingException(self.tr('Output format is invalid'))
 
         arguments = [
-            panchromatic.source(),
-            spectral.source(),
+            GdalUtils.gdalSourceFromLayer(panchromatic),
+            GdalUtils.gdalSourceFromLayer(spectral),
             out,
             '-r',
             self.methods[self.parameterAsEnum(parameters, self.RESAMPLING, context)][1],

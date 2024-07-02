@@ -277,7 +277,7 @@ class gdalcalc(GdalAlgorithm):
             arguments.append(str(bbox.yMinimum()))
 
         arguments.append('-A')
-        arguments.append(layer_a.source())
+        arguments.append(GdalUtils.gdalSourceFromLayer(layer_a))
         if self.parameterAsString(parameters, self.BAND_A, context):
             arguments.append('--A_band ' + self.parameterAsString(parameters, self.BAND_A, context))
 
@@ -286,7 +286,7 @@ class gdalcalc(GdalAlgorithm):
             if layer_b is None:
                 raise QgsProcessingException(self.invalidRasterError(parameters, self.INPUT_B))
             arguments.append('-B')
-            arguments.append(layer_b.source())
+            arguments.append(GdalUtils.gdalSourceFromLayer(layer_b))
             if self.parameterAsString(parameters, self.BAND_B, context):
                 arguments.append('--B_band ' + self.parameterAsString(parameters, self.BAND_B, context))
 
@@ -295,7 +295,7 @@ class gdalcalc(GdalAlgorithm):
             if layer_c is None:
                 raise QgsProcessingException(self.invalidRasterError(parameters, self.INPUT_C))
             arguments.append('-C')
-            arguments.append(layer_c.source())
+            arguments.append(GdalUtils.gdalSourceFromLayer(layer_c))
             if self.parameterAsString(parameters, self.BAND_C, context):
                 arguments.append('--C_band ' + self.parameterAsString(parameters, self.BAND_C, context))
 
@@ -304,7 +304,7 @@ class gdalcalc(GdalAlgorithm):
             if layer_d is None:
                 raise QgsProcessingException(self.invalidRasterError(parameters, self.INPUT_D))
             arguments.append('-D')
-            arguments.append(layer_d.source())
+            arguments.append(GdalUtils.gdalSourceFromLayer(layer_d))
             if self.parameterAsString(parameters, self.BAND_D, context):
                 arguments.append('--D_band ' + self.parameterAsString(parameters, self.BAND_D, context))
 
@@ -313,7 +313,7 @@ class gdalcalc(GdalAlgorithm):
             if layer_e is None:
                 raise QgsProcessingException(self.invalidRasterError(parameters, self.INPUT_E))
             arguments.append('-E')
-            arguments.append(layer_e.source())
+            arguments.append(GdalUtils.gdalSourceFromLayer(layer_e))
             if self.parameterAsString(parameters, self.BAND_E, context):
                 arguments.append('--E_band ' + self.parameterAsString(parameters, self.BAND_E, context))
 
@@ -322,7 +322,7 @@ class gdalcalc(GdalAlgorithm):
             if layer_f is None:
                 raise QgsProcessingException(self.invalidRasterError(parameters, self.INPUT_F))
             arguments.append('-F')
-            arguments.append(layer_f.source())
+            arguments.append(GdalUtils.gdalSourceFromLayer(layer_f))
             if self.parameterAsString(parameters, self.BAND_F, context):
                 arguments.append('--F_band ' + self.parameterAsString(parameters, self.BAND_F, context))
 

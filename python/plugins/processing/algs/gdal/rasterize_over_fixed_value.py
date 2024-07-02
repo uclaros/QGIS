@@ -101,7 +101,7 @@ class rasterize_over_fixed_value(GdalAlgorithm):
         if inLayer is None:
             raise QgsProcessingException(self.invalidRasterError(parameters, self.INPUT_RASTER))
 
-        self.setOutputValue(self.OUTPUT, inLayer.source())
+        self.setOutputValue(self.OUTPUT, GdalUtils.gdalSourceFromLayer(inLayer))
 
         arguments = [
             '-l',
@@ -118,7 +118,7 @@ class rasterize_over_fixed_value(GdalAlgorithm):
             arguments.append(extra)
 
         arguments.append(ogrLayer)
-        arguments.append(inLayer.source())
+        arguments.append(GdalUtils.gdalSourceFromLayer(inLayer))
 
         return [self.commandName(), GdalUtils.escapeAndJoin(arguments)]
 
@@ -129,14 +129,14 @@ class rasterize_over_fixed_value(GdalAlgorithm):
 
         if context.project():
             for l in context.project().mapLayers().values():
-                if l.source() != fileName:
+                if GdalUtils.gdalSourceFromLayer(l) != fileName:
                     continue
 
                 l.dataProvider().reloadData()
                 l.triggerRepaint()
 
         for l in context.temporaryLayerStore().mapLayers().values():
-            if l.source() != fileName:
+            if GdalUtils.gdalSourceFromLayer(l) != fileName:
                 continue
 
             l.dataProvider().reloadData()

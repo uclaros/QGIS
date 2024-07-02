@@ -91,7 +91,7 @@ class tri(GdalAlgorithm):
 
         arguments = [
             'TRI',
-            inLayer.source(),
+            GdalUtils.gdalSourceFromLayer(inLayer),
             out,
             '-b',
             str(self.parameterAsInt(parameters, self.BAND, context)),

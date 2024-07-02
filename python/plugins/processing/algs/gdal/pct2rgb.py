@@ -87,7 +87,7 @@ class pct2rgb(GdalAlgorithm):
             raise QgsProcessingException(self.tr('Output format is invalid'))
 
         arguments = [
-            inLayer.source(),
+            GdalUtils.gdalSourceFromLayer(inLayer),
             out,
             '-of',
             output_format,

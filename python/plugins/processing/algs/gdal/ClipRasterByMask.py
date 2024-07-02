@@ -260,7 +260,7 @@ class ClipRasterByMask(GdalAlgorithm):
             extra = self.parameterAsString(parameters, self.EXTRA, context)
             arguments.append(extra)
 
-        arguments.append(inLayer.source())
+        arguments.append(GdalUtils.gdalSourceFromLayer(inLayer))
         arguments.append(out)
 
         return [self.commandName(), GdalUtils.escapeAndJoin(arguments)]

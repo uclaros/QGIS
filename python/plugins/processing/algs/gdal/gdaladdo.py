@@ -125,7 +125,7 @@ class gdaladdo(GdalAlgorithm):
         if inLayer is None:
             raise QgsProcessingException(self.invalidRasterError(parameters, self.INPUT))
 
-        fileName = inLayer.source()
+        fileName = GdalUtils.gdalSourceFromLayer(inLayer)
 
         arguments = [fileName]
         if self.RESAMPLING in parameters and parameters[self.RESAMPLING] is not None:

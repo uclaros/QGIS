@@ -116,14 +116,14 @@ class viewshed(GdalAlgorithm):
         return 'gdal_viewshed'
 
     def getConsoleCommands(self, parameters, context, feedback, executing=True):
-        dem = self.parameterAsRasterLayer(parameters, self.INPUT, context)
-        if dem is None:
+        inLayer = self.parameterAsRasterLayer(parameters, self.INPUT, context)
+        if inLayer is None:
             raise QgsProcessingException(self.invalidRasterError(parameters, self.INPUT))
 
         out = self.parameterAsOutputLayer(parameters, self.OUTPUT, context)
         self.setOutputValue(self.OUTPUT, out)
 
-        observer = self.parameterAsPoint(parameters, self.OBSERVER, context, dem.crs())
+        observer = self.parameterAsPoint(parameters, self.OBSERVER, context, inLayer.crs())
 
         arguments = [
             '-b',
@@ -151,7 +151,7 @@ class viewshed(GdalAlgorithm):
             extra = self.parameterAsString(parameters, self.EXTRA, context)
             arguments.append(extra)
 
-        arguments.append(dem.source())
+        arguments.append(GdalUtils.gdalSourceFromLayer(inLayer))
         arguments.append(out)
 
         return [self.commandName(), GdalUtils.escapeAndJoin(arguments)]

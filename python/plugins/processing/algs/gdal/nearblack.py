@@ -110,7 +110,7 @@ class nearblack(GdalAlgorithm):
             raise QgsProcessingException(self.tr('Output format is invalid'))
 
         arguments = [
-            inLayer.source(),
+            GdalUtils.gdalSourceFromLayer(inLayer),
             '-of',
             output_format,
             '-o',

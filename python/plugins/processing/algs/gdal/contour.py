@@ -187,7 +187,7 @@ class contour(GdalAlgorithm):
         if options:
             arguments.append(options)
 
-        arguments.append(inLayer.source())
+        arguments.append(GdalUtils.gdalSourceFromLayer(inLayer))
         arguments.append(output)
         return arguments
 

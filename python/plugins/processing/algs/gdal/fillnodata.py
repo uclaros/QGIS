@@ -128,7 +128,7 @@ class fillnodata(GdalAlgorithm):
         self.setOutputValue(self.OUTPUT, out)
 
         arguments = [
-            raster.source(),
+            GdalUtils.gdalSourceFromLayer(raster),
             out,
             '-md',
             str(self.parameterAsInt(parameters, self.DISTANCE, context)),
@@ -145,7 +145,7 @@ class fillnodata(GdalAlgorithm):
         mask = self.parameterAsRasterLayer(parameters, self.MASK_LAYER, context)
         if mask:
             arguments.append('-mask')
-            arguments.append(mask.source())
+            arguments.append(GdalUtils.gdalSourceFromLayer(mask))
 
         output_format = QgsRasterFileWriter.driverForExtension(os.path.splitext(out)[1])
         if not output_format:

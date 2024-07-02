@@ -134,7 +134,7 @@ class rearrange_bands(GdalAlgorithm):
         if options:
             arguments.extend(GdalUtils.parseCreationOptions(options))
 
-        arguments.append(inLayer.source())
+        arguments.append(GdalUtils.gdalSourceFromLayer(inLayer))
         arguments.append(out)
 
         return [self.commandName(), GdalUtils.escapeAndJoin(arguments)]

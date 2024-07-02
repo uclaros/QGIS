@@ -97,7 +97,7 @@ class roughness(GdalAlgorithm):
 
         arguments = [
             'roughness',
-            inLayer.source(),
+            GdalUtils.gdalSourceFromLayer(inLayer),
             out,
             '-of',
             output_format,

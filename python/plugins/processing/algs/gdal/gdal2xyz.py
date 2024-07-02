@@ -118,11 +118,11 @@ class gdal2xyz(GdalAlgorithm):
         if self.parameterAsBoolean(parameters, self.CSV, context):
             arguments.append('-csv')
 
-        raster = self.parameterAsRasterLayer(parameters, self.INPUT, context)
-        if raster is None:
+        inLayer = self.parameterAsRasterLayer(parameters, self.INPUT, context)
+        if inLayer is None:
             raise QgsProcessingException(self.invalidRasterError(parameters, self.INPUT))
 
-        arguments.append(raster.source())
+        arguments.append(GdalUtils.gdalSourceFromLayer(inLayer))
         arguments.append(self.parameterAsFileOutput(parameters, self.OUTPUT, context))
 
         return [self.commandName() + ('.bat' if isWindows() else '.py'), GdalUtils.escapeAndJoin(arguments)]

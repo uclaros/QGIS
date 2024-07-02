@@ -483,6 +483,30 @@ class GdalUtils:
 
         return crs.toWkt(QgsCoordinateReferenceSystem.WktVariant.WKT_PREFERRED_GDAL)
 
+    @staticmethod
+    def gdalSourceFromLayer(layer):
+        gdal_source = ''
+        if layer.dataProvider().name() == 'postgresraster':
+            uri = layer.dataProvider().uri()
+            gdal_source = f"PG: {uri.connectionInfo()}"
+            schema = uri.schema()
+            if schema:
+                gdal_source += f" schema='{schema}'"
+            table = uri.table()
+            gdal_source += f" table='{table}'"
+            column = uri.param('column') or uri.geometryColumn()
+            if column:
+                gdal_source += f" column='{column}'"
+            is_tiled = any([layer.dataProvider().xSize() != layer.dataProvider().xBlockSize(),
+                            layer.dataProvider().ySize() != layer.dataProvider().yBlockSize()])
+            gdal_source += f" mode={2 if is_tiled else 1}"
+            where = layer.dataProvider().subsetString()
+            if where:
+                gdal_source += f" where='{where}'"
+        else:
+            gdal_source = layer.source()
+        return gdal_source
+
     @classmethod
     def tr(cls, string, context=''):
         if context == '':

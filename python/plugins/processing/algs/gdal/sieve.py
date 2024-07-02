@@ -111,7 +111,7 @@ class sieve(GdalAlgorithm):
         mask = self.parameterAsRasterLayer(parameters, self.MASK_LAYER, context)
         if mask:
             arguments.append('-mask')
-            arguments.append(mask.source())
+            arguments.append(GdalUtils.gdalSourceFromLayer(mask))
 
         out = self.parameterAsOutputLayer(parameters, self.OUTPUT, context)
         self.setOutputValue(self.OUTPUT, out)
@@ -127,11 +127,11 @@ class sieve(GdalAlgorithm):
             extra = self.parameterAsString(parameters, self.EXTRA, context)
             arguments.append(extra)
 
-        raster = self.parameterAsRasterLayer(parameters, self.INPUT, context)
-        if raster is None:
+        inLayer = self.parameterAsRasterLayer(parameters, self.INPUT, context)
+        if inLayer is None:
             raise QgsProcessingException(self.invalidRasterError(parameters, self.INPUT))
 
-        arguments.append(raster.source())
+        arguments.append(GdalUtils.gdalSourceFromLayer(inLayer))
         arguments.append(out)
 
         return [self.commandName() + ('.bat' if isWindows() else '.py'), GdalUtils.escapeAndJoin(arguments)]
