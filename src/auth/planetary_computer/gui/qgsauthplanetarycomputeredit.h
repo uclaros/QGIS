@@ -1,5 +1,5 @@
 /***************************************************************************
-    qgsauthazuresasedit.h
+    qgsauthplanetarycomputeredit.h
     ------------------------
     begin                : July 2025
     copyright            : (C) 2025 by Stefanos Natsis
@@ -14,22 +14,22 @@
  *                                                                         *
  ***************************************************************************/
 
-#ifndef QGSAUTHAZURESASEDIT_H
-#define QGSAUTHAZURESASEDIT_H
+#ifndef QGSAUTHPLANETARYCOMPUTEREDIT_H
+#define QGSAUTHPLANETARYCOMPUTEREDIT_H
 
 #include <QWidget>
 #include "qgsauthmethodedit.h"
-#include "ui_qgsauthazuresasedit.h"
+#include "ui_qgsauthplanetarycomputeredit.h"
 
 #include "qgsauthconfig.h"
 
 
-class QgsAuthAzureSasEdit : public QgsAuthMethodEdit, private Ui::QgsAuthAzureSasEdit
+class QgsAuthPlanetaryComputerEdit : public QgsAuthMethodEdit, private Ui::QgsAuthPlanetaryComputerEdit
 {
     Q_OBJECT
 
   public:
-    explicit QgsAuthAzureSasEdit( QWidget *parent = nullptr );
+    explicit QgsAuthPlanetaryComputerEdit( QWidget *parent = nullptr );
 
     bool validateConfig() override;
 
@@ -42,28 +42,9 @@ class QgsAuthAzureSasEdit : public QgsAuthMethodEdit, private Ui::QgsAuthAzureSa
 
     void clearConfig() override;
 
-  private slots:
-    void addHeaderPair();
-
-    void removeHeaderPair();
-
-    void clearHeaderPairs();
-
-    void populateHeaderPairs( const QgsStringMap &headerpairs, bool append = false );
-
-    void headerTableSelectionChanged();
-
-    void headerTableCellChanged( const int row, const int column );
-
   private:
     QgsStringMap mConfigMap;
     bool mValid = false;
-
-    bool emptyHeadersKeysPresent();
-
-    void addHeaderPairRow( const QString &key, const QString &val );
-
-    QgsStringMap headerPairs() const;
 };
 
-#endif // QGSAUTHAZURESASEDIT_H
+#endif // QGSAUTHPLANETARYCOMPUTEREDIT_H

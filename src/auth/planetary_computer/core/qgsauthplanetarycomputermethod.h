@@ -1,5 +1,5 @@
 /***************************************************************************
-    qgsauthazuresasmethod.h
+    qgsauthplanetarycomputermethod.h
     ------------------------
     begin                : October 2025
     copyright            : (C) 2025 by Stefanos Natsis
@@ -14,8 +14,8 @@
  *                                                                         *
  ***************************************************************************/
 
-#ifndef QGSAUTHAZURESASMETHOD_H
-#define QGSAUTHAZURESASMETHOD_H
+#ifndef QGSAUTHPLANETARYCOMPUTERMETHOD_H
+#define QGSAUTHPLANETARYCOMPUTERMETHOD_H
 
 #include <QObject>
 #include <QMutex>
@@ -25,7 +25,7 @@
 #include "qgsauthmethodmetadata.h"
 
 
-class QgsAuthAzureSasMethod : public QgsAuthMethod
+class QgsAuthPlanetaryComputerMethod : public QgsAuthMethod
 {
     Q_OBJECT
 
@@ -33,8 +33,11 @@ class QgsAuthAzureSasMethod : public QgsAuthMethod
     static const QString AUTH_METHOD_KEY;
     static const QString AUTH_METHOD_DESCRIPTION;
     static const QString AUTH_METHOD_DISPLAY_DESCRIPTION;
+    static const QString BLOB_STORAGE_SAS_SIGN_URL;
+    static const QString BLOB_STORAGE_DOMAIN;
+    static const QString OAUTH_REQUEST_URL;
 
-    explicit QgsAuthAzureSasMethod();
+    explicit QgsAuthPlanetaryComputerMethod();
 
     // QgsAuthMethod interface
     QString key() const override;
@@ -53,24 +56,37 @@ class QgsAuthAzureSasMethod : public QgsAuthMethod
 #endif
 
   private:
+    struct SasToken
+    {
+        bool isValid() { return !token.isEmpty() && !( expiry < QDateTime::currentDateTimeUtc().addSecs( 300 ) ); }
+        QDateTime expiry;
+        QString token;
+    };
+
+    QString sasTokenForUrl( const QUrl &url );
+
+    void storeSasToken( const QString &account, const QString &container, const SasToken &token );
+    SasToken retrieveSasToken( const QString &account, const QString &container );
+
     QgsAuthMethodConfig getMethodConfig( const QString &authcfg, bool fullconfig = true );
 
     void putMethodConfig( const QString &authcfg, const QgsAuthMethodConfig &config );
 
     void removeMethodConfig( const QString &authcfg );
 
+    static QMap<QString, SasToken> sSasTokensCache;
     static QMap<QString, QgsAuthMethodConfig> sAuthConfigCache;
 };
 
 
-class QgsAuthAzureSasMethodMetadata : public QgsAuthMethodMetadata
+class QgsAuthPlanetaryComputerMethodMetadata : public QgsAuthMethodMetadata
 {
   public:
-    QgsAuthAzureSasMethodMetadata()
-      : QgsAuthMethodMetadata( QgsAuthAzureSasMethod::AUTH_METHOD_KEY, QgsAuthAzureSasMethod::AUTH_METHOD_DESCRIPTION )
+    QgsAuthPlanetaryComputerMethodMetadata()
+      : QgsAuthMethodMetadata( QgsAuthPlanetaryComputerMethod::AUTH_METHOD_KEY, QgsAuthPlanetaryComputerMethod::AUTH_METHOD_DESCRIPTION )
     {}
-    QgsAuthAzureSasMethod *createAuthMethod() const override { return new QgsAuthAzureSasMethod; }
+    QgsAuthPlanetaryComputerMethod *createAuthMethod() const override { return new QgsAuthPlanetaryComputerMethod; }
     //QStringList supportedDataProviders() const override;
 };
 
-#endif // QGSAUTHAZURESASMETHOD_H
+#endif // QGSAUTHPLANETARYCOMPUTERMETHOD_H
