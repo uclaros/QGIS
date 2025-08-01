@@ -6,22 +6,75 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>550</width>
-    <height>510</height>
+    <width>448</width>
+    <height>282</height>
    </rect>
   </property>
-  <layout class="QGridLayout" name="gridLayout">
-   <item row="0" column="1">
-    <widget class="QLineEdit" name="lineEdit"/>
-   </item>
+  <layout class="QFormLayout" name="formLayout">
    <item row="0" column="0">
-    <widget class="QLabel" name="label">
+    <widget class="QLabel" name="lblType">
      <property name="text">
-      <string>Client ID</string>
+      <string>Server type</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="QComboBox" name="cbType">
+     <item>
+      <property name="text">
+       <string>Public</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Planetary Computer Pro</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="lblRootUrl">
+     <property name="text">
+      <string>Catalog URL</string>
      </property>
     </widget>
    </item>
    <item row="1" column="1">
+    <widget class="QLineEdit" name="leRootUrl">
+     <property name="placeholderText">
+      <string>Required</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QLabel" name="lblClientId">
+     <property name="text">
+      <string>Application (client) ID</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
+    <widget class="QLineEdit" name="leClientId">
+     <property name="placeholderText">
+      <string>Required</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="lblTenantId">
+     <property name="text">
+      <string>Directory (tenant) ID</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QLineEdit" name="leTenantId">
+     <property name="placeholderText">
+      <string>Optional</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="1">
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Orientation::Vertical</enum>
@@ -36,6 +89,9 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>cbType</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

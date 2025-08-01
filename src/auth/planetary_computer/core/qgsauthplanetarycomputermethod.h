@@ -34,6 +34,7 @@ class QgsAuthPlanetaryComputerMethod : public QgsAuthMethod
     static const QString AUTH_METHOD_DESCRIPTION;
     static const QString AUTH_METHOD_DISPLAY_DESCRIPTION;
     static const QString BLOB_STORAGE_SAS_SIGN_URL;
+    static const QString PUBLIC_SAS_SIGN_URL;
     static const QString BLOB_STORAGE_DOMAIN;
     static const QString OAUTH_REQUEST_URL;
 
@@ -63,7 +64,7 @@ class QgsAuthPlanetaryComputerMethod : public QgsAuthMethod
         QString token;
     };
 
-    QString sasTokenForUrl( const QUrl &url );
+    QString sasTokenForUrl( const QUrl &url, const QString &signUrl, const QString &authcfg );
 
     void storeSasToken( const QString &account, const QString &container, const SasToken &token );
     SasToken retrieveSasToken( const QString &account, const QString &container );
@@ -73,6 +74,8 @@ class QgsAuthPlanetaryComputerMethod : public QgsAuthMethod
     void putMethodConfig( const QString &authcfg, const QgsAuthMethodConfig &config );
 
     void removeMethodConfig( const QString &authcfg );
+
+    std::unique_ptr<QgsAuthMethod> mOauth2;
 
     static QMap<QString, SasToken> sSasTokensCache;
     static QMap<QString, QgsAuthMethodConfig> sAuthConfigCache;

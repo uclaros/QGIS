@@ -43,6 +43,8 @@ class QgsAuthPlanetaryComputerEdit : public QgsAuthMethodEdit, private Ui::QgsAu
     void clearConfig() override;
 
   private:
+    void updateServerType( int indx );
+
     QgsStringMap mConfigMap;
     bool mValid = false;
 };

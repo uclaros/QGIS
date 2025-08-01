@@ -22,6 +22,8 @@
 #include "qgsapplication.h"
 #include "qgsmessagelog.h"
 #include "qgsblockingnetworkrequest.h"
+#include "qgsauthmethodregistry.h"
+#include "qgsnetworkaccessmanager.h"
 
 #include <nlohmann/json.hpp>
 
@@ -39,6 +41,7 @@ const QString QgsAuthPlanetaryComputerMethod::AUTH_METHOD_KEY = QStringLiteral( 
 const QString QgsAuthPlanetaryComputerMethod::AUTH_METHOD_DESCRIPTION = QStringLiteral( "MS Planetary Computer" );
 const QString QgsAuthPlanetaryComputerMethod::AUTH_METHOD_DISPLAY_DESCRIPTION = tr( "MS Planetary Computer" );
 const QString QgsAuthPlanetaryComputerMethod::BLOB_STORAGE_SAS_SIGN_URL = QStringLiteral( "https://planetarycomputer.microsoft.com/api/sas/v1/token/%1/%2" );
+const QString QgsAuthPlanetaryComputerMethod::PUBLIC_SAS_SIGN_URL = QStringLiteral( "https://planetarycomputer.microsoft.com/api/sas/v1/sign?href=" );
 const QString QgsAuthPlanetaryComputerMethod::BLOB_STORAGE_DOMAIN = QStringLiteral( ".blob.core.windows.net" );
 
 // const QString QgsAuthPlanetaryComputerMethod::OAUTH_REQUEST_URL = QStringLiteral( "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize" );
@@ -55,6 +58,8 @@ QgsAuthPlanetaryComputerMethod::QgsAuthPlanetaryComputerMethod()
   setExpansions( QgsAuthMethod::NetworkRequest );
   setDataProviders( QStringList() << QStringLiteral( "ows" ) << QStringLiteral( "wfs" ) // convert to lowercase
                                   << QStringLiteral( "wcs" ) << QStringLiteral( "wms" ) );
+
+  qDebug() << "********** AUTH METHOD CREATED *************";
 }
 
 QString QgsAuthPlanetaryComputerMethod::key() const
@@ -82,16 +87,47 @@ bool QgsAuthPlanetaryComputerMethod::updateNetworkRequest( QNetworkRequest &requ
     return false;
   }
 
+  const bool isPro = config.config( QStringLiteral( "serverType" ) ) == QLatin1String( "pro" );
+
+
+  if ( isPro )
+  {
+    if ( !mOauth2 )
+      mOauth2.reset( QgsAuthMethodRegistry::instance()->createAuthMethod( QStringLiteral( "OAuth2" ) ) );
+    mOauth2->updateNetworkRequest( request, authcfg );
+    auto t = request.rawHeader( "Authorization" );
+    qDebug() << "Authorization: " << t;
+  }
+
+
+  QString signUrl = PUBLIC_SAS_SIGN_URL;
+  if ( isPro )
+  {
+    QUrl rootUrl( config.config( QStringLiteral( "rootUrl" ) ) );
+    signUrl = QStringLiteral( "%1://%2/sas/sign?api-version=2025-04-30-preview&href=" ).arg( rootUrl.scheme(), rootUrl.host() );
+  }
+
+
   QUrl url( request.url() );
-  const QString query( url.query() );
-  const QString token( sasTokenForUrl( url ) );
+  const QString token( sasTokenForUrl( url, signUrl, authcfg ) );
 
-  if ( query.isEmpty() )
-    url.setQuery( token );
-  else if ( !token.isEmpty() )
-    url.setQuery( QStringLiteral( "%1&%2" ).arg( query, token ) );
+  if ( !token.isEmpty() )
+  {
+    const QString query( url.query() );
+    if ( query.isEmpty() )
+      url.setQuery( token );
+    else if ( !token.isEmpty() )
+      url.setQuery( QStringLiteral( "%1&%2" ).arg( query, token ) );
 
-  request.setUrl( url );
+    request.setUrl( url );
+
+    // we need to manually clear the oauth token or the request will be denied
+    if ( request.hasRawHeader( "Authorization" ) )
+      request.setRawHeader( "Authorization", {} );
+  }
+
+  auto t = request.rawHeader( "Authorization" );
+  qDebug() << "Final Authorization: " << t;
 
   return true;
 }
@@ -150,7 +186,7 @@ void QgsAuthPlanetaryComputerMethod::removeMethodConfig( const QString &authcfg 
   }
 }
 
-QString QgsAuthPlanetaryComputerMethod::sasTokenForUrl( const QUrl &url )
+QString QgsAuthPlanetaryComputerMethod::sasTokenForUrl( const QUrl &url, const QString &signUrl, const QString &authcfg )
 {
   QString token;
 
@@ -169,34 +205,51 @@ QString QgsAuthPlanetaryComputerMethod::sasTokenForUrl( const QUrl &url )
   if ( sas.isValid() )
     return sas.token;
 
-  QNetworkRequest request = QNetworkRequest( BLOB_STORAGE_SAS_SIGN_URL.arg( account, container ) );
-  QgsBlockingNetworkRequest networkRequest;
-  if ( networkRequest.get( request, true ) != QgsBlockingNetworkRequest::NoError )
+  // QNetworkRequest request = QNetworkRequest( BLOB_STORAGE_SAS_SIGN_URL.arg( account, container ) );
+
+  // /sas/sign?api-version=2025-04-30-preview&href={href}
+  const QString u = signUrl + url.toString();
+  QNetworkRequest request = QNetworkRequest( u );
+  if ( mOauth2 )
+  {
+    mOauth2->updateNetworkRequest( request, authcfg );
+  }
+  QgsNetworkReplyContent content = QgsNetworkAccessManager::instance()->blockingGet( request );
+
+  if ( content.error() != QNetworkReply::NoError )
   {
     QgsDebugError( QStringLiteral( "Error getting SAS token" ) );
+    return token;
   }
-  else
-  {
-    const QgsNetworkReplyContent content = networkRequest.reply();
-    try
-    {
-      nlohmann::json j = nlohmann::json::parse( content.content() );
-      if ( j.contains( "token" ) && j.contains( "msft:expiry" ) )
-      {
-        token = QString::fromStdString( j.at( "token" ) );
-        const QString expiry = QString::fromStdString( j.at( "msft:expiry" ) );
-        qDebug() << "Received token: " << token;
-        qDebug() << "Expires at: " << expiry;
 
-        sas.token = token;
-        sas.expiry = QDateTime::fromString( expiry, Qt::ISODate );
-        storeSasToken( account, container, sas );
-      }
-    }
-    catch ( nlohmann::json::exception &ex )
+  try
+  {
+    nlohmann::json j = nlohmann::json::parse( content.content() );
+    if ( j.contains( "token" ) )
     {
-      QgsDebugError( QStringLiteral( "Error parsing SAS token reply : %1" ).arg( ex.what() ) );
+      token = QString::fromStdString( j.at( "token" ) );
+      qDebug() << "Received token: " << token;
+      sas.token = token;
     }
+    if ( j.contains( "href" ) )
+    {
+      QString href = QString::fromStdString( j.at( "href" ) );
+      token = href.remove( url.toString() + '?' );
+      qDebug() << "Received token: " << token;
+      sas.token = token;
+    }
+    if ( j.contains( "msft:expiry" ) )
+    {
+      const QString expiry = QString::fromStdString( j.at( "msft:expiry" ) );
+      qDebug() << "Expires at: " << expiry;
+      sas.expiry = QDateTime::fromString( expiry, Qt::ISODate );
+    }
+    if ( sas.isValid() )
+      storeSasToken( account, container, sas );
+  }
+  catch ( nlohmann::json::exception &ex )
+  {
+    QgsDebugError( QStringLiteral( "Error parsing SAS token reply : %1" ).arg( ex.what() ) );
   }
 
   return token;
