@@ -34,7 +34,8 @@ class QgsAuthPlanetaryComputerMethod : public QgsAuthMethod
     static const QString AUTH_METHOD_DESCRIPTION;
     static const QString AUTH_METHOD_DISPLAY_DESCRIPTION;
     static const QString BLOB_STORAGE_SAS_SIGN_URL;
-    static const QString PUBLIC_SAS_SIGN_URL;
+    static const QString OPEN_SAS_SIGN_URL;
+    static const QString PRO_SAS_SIGN_URL;
     static const QString BLOB_STORAGE_DOMAIN;
     static const QString OAUTH_REQUEST_URL;
 
@@ -48,6 +49,8 @@ class QgsAuthPlanetaryComputerMethod : public QgsAuthMethod
     QString displayDescription() const override;
 
     bool updateNetworkRequest( QNetworkRequest &request, const QString &authcfg, const QString &dataprovider = QString() ) override;
+
+    bool updateDataSourceUriItems( QStringList &connectionItems, const QString &authcfg, const QString &dataprovider = QString() ) override;
 
     void clearCachedConfig( const QString &authcfg ) override;
     void updateMethodConfig( QgsAuthMethodConfig &config ) override;

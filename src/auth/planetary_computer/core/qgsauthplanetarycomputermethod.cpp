@@ -41,7 +41,8 @@ const QString QgsAuthPlanetaryComputerMethod::AUTH_METHOD_KEY = QStringLiteral( 
 const QString QgsAuthPlanetaryComputerMethod::AUTH_METHOD_DESCRIPTION = QStringLiteral( "MS Planetary Computer" );
 const QString QgsAuthPlanetaryComputerMethod::AUTH_METHOD_DISPLAY_DESCRIPTION = tr( "MS Planetary Computer" );
 const QString QgsAuthPlanetaryComputerMethod::BLOB_STORAGE_SAS_SIGN_URL = QStringLiteral( "https://planetarycomputer.microsoft.com/api/sas/v1/token/%1/%2" );
-const QString QgsAuthPlanetaryComputerMethod::PUBLIC_SAS_SIGN_URL = QStringLiteral( "https://planetarycomputer.microsoft.com/api/sas/v1/sign?href=" );
+const QString QgsAuthPlanetaryComputerMethod::OPEN_SAS_SIGN_URL = QStringLiteral( "https://planetarycomputer.microsoft.com/api/sas/v1/sign?href=" );
+const QString QgsAuthPlanetaryComputerMethod::PRO_SAS_SIGN_URL = QStringLiteral( "%1://%2/sas/sign?api-version=2025-04-30-preview&href=" );
 const QString QgsAuthPlanetaryComputerMethod::BLOB_STORAGE_DOMAIN = QStringLiteral( ".blob.core.windows.net" );
 
 // const QString QgsAuthPlanetaryComputerMethod::OAUTH_REQUEST_URL = QStringLiteral( "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize" );
@@ -55,11 +56,11 @@ QMap<QString, QgsAuthPlanetaryComputerMethod::SasToken> QgsAuthPlanetaryComputer
 QgsAuthPlanetaryComputerMethod::QgsAuthPlanetaryComputerMethod()
 {
   setVersion( 2 );
-  setExpansions( QgsAuthMethod::NetworkRequest );
+  setExpansions( QgsAuthMethod::NetworkRequest | QgsAuthMethod::DataSourceUri );
   setDataProviders( QStringList() << QStringLiteral( "ows" ) << QStringLiteral( "wfs" ) // convert to lowercase
-                                  << QStringLiteral( "wcs" ) << QStringLiteral( "wms" ) );
+                                  << QStringLiteral( "wcs" ) << QStringLiteral( "wms" ) << QStringLiteral( "gdal" ) << QStringLiteral( "stac" ) );
 
-  qDebug() << "********** AUTH METHOD CREATED *************";
+  qDebug() << "\n********** AUTH METHOD CREATED *************";
 }
 
 QString QgsAuthPlanetaryComputerMethod::key() const
@@ -87,28 +88,50 @@ bool QgsAuthPlanetaryComputerMethod::updateNetworkRequest( QNetworkRequest &requ
     return false;
   }
 
-  const bool isPro = config.config( QStringLiteral( "serverType" ) ) == QLatin1String( "pro" );
-
-
-  if ( isPro )
+  // we only need to update requests for planetary computer pro
+  // but we don't want to update blob storage requets as those are signed with a sas token
+  if ( mOauth2 && !request.url().host().endsWith( BLOB_STORAGE_DOMAIN ) )
   {
-    if ( !mOauth2 )
-      mOauth2.reset( QgsAuthMethodRegistry::instance()->createAuthMethod( QStringLiteral( "OAuth2" ) ) );
     mOauth2->updateNetworkRequest( request, authcfg );
     auto t = request.rawHeader( "Authorization" );
     qDebug() << "Authorization: " << t;
   }
 
+  return true;
+}
 
-  QString signUrl = PUBLIC_SAS_SIGN_URL;
+bool QgsAuthPlanetaryComputerMethod::updateDataSourceUriItems( QStringList &connectionItems, const QString &authcfg, const QString &dataprovider )
+{
+  Q_UNUSED( dataprovider )
+  const QMutexLocker locker( &mMutex );
+  const QgsAuthMethodConfig config = getMethodConfig( authcfg );
+  if ( !config.isValid() )
+  {
+    QgsDebugError( QStringLiteral( "Update URI items FAILED for authcfg: %1: config invalid" ).arg( authcfg ) );
+    return false;
+  }
+
+  const bool isPro = config.config( QStringLiteral( "serverType" ) ) == QLatin1String( "pro" );
+  QString signUrl;
   if ( isPro )
   {
     QUrl rootUrl( config.config( QStringLiteral( "rootUrl" ) ) );
-    signUrl = QStringLiteral( "%1://%2/sas/sign?api-version=2025-04-30-preview&href=" ).arg( rootUrl.scheme(), rootUrl.host() );
+    signUrl = PRO_SAS_SIGN_URL.arg( rootUrl.scheme(), rootUrl.host() );
+  }
+  else
+  {
+    signUrl = OPEN_SAS_SIGN_URL;
   }
 
+  // We trim the vsicurl prefix from the uri before creating the url, we'll add it back after fetching the token if needed
+  QString uri = connectionItems.constFirst();
+  const bool isVsi = uri.startsWith( QLatin1String( "/vsicurl/" ) );
+  if ( isVsi )
+  {
+    uri.remove( 0, 9 );
+  }
 
-  QUrl url( request.url() );
+  QUrl url( uri );
   const QString token( sasTokenForUrl( url, signUrl, authcfg ) );
 
   if ( !token.isEmpty() )
@@ -119,15 +142,11 @@ bool QgsAuthPlanetaryComputerMethod::updateNetworkRequest( QNetworkRequest &requ
     else if ( !token.isEmpty() )
       url.setQuery( QStringLiteral( "%1&%2" ).arg( query, token ) );
 
-    request.setUrl( url );
-
-    // we need to manually clear the oauth token or the request will be denied
-    if ( request.hasRawHeader( "Authorization" ) )
-      request.setRawHeader( "Authorization", {} );
+    if ( isVsi )
+      connectionItems.replace( 0, QStringLiteral( "/vsicurl/%1" ).arg( url.toString() ) );
+    else
+      connectionItems.replace( 0, url.toString() );
   }
-
-  auto t = request.rawHeader( "Authorization" );
-  qDebug() << "Final Authorization: " << t;
 
   return true;
 }
@@ -165,6 +184,10 @@ QgsAuthMethodConfig QgsAuthPlanetaryComputerMethod::getMethodConfig( const QStri
 
   // cache bundle
   putMethodConfig( authcfg, config );
+
+  // initialize the oauth2 method if server is planetary computer pro
+  if ( !mOauth2 && config.config( QStringLiteral( "serverType" ) ) == QLatin1String( "pro" ) )
+    mOauth2.reset( QgsAuthMethodRegistry::instance()->createAuthMethod( QStringLiteral( "OAuth2" ) ) );
 
   return config;
 }
@@ -205,11 +228,9 @@ QString QgsAuthPlanetaryComputerMethod::sasTokenForUrl( const QUrl &url, const Q
   if ( sas.isValid() )
     return sas.token;
 
-  // QNetworkRequest request = QNetworkRequest( BLOB_STORAGE_SAS_SIGN_URL.arg( account, container ) );
-
-  // /sas/sign?api-version=2025-04-30-preview&href={href}
-  const QString u = signUrl + url.toString();
-  QNetworkRequest request = QNetworkRequest( u );
+  const QString requestUrl = signUrl + url.toString();
+  QNetworkRequest request = QNetworkRequest( requestUrl );
+  // for planetary computer pro we need to apply the oauth2 token first
   if ( mOauth2 )
   {
     mOauth2->updateNetworkRequest( request, authcfg );
@@ -225,24 +246,27 @@ QString QgsAuthPlanetaryComputerMethod::sasTokenForUrl( const QUrl &url, const Q
   try
   {
     nlohmann::json j = nlohmann::json::parse( content.content() );
+    // The collectionId signing endpoints return the plain SAS token
     if ( j.contains( "token" ) )
     {
       token = QString::fromStdString( j.at( "token" ) );
-      qDebug() << "Received token: " << token;
       sas.token = token;
+      qDebug() << "Received token: " << token;
     }
+    // The url signing endpoints return the complete SAS signed url, so we need to extract the token
     if ( j.contains( "href" ) )
     {
       QString href = QString::fromStdString( j.at( "href" ) );
       token = href.remove( url.toString() + '?' );
-      qDebug() << "Received token: " << token;
       sas.token = token;
+      qDebug() << "Received token: " << token;
     }
+    // All endpoints return the UTC expiry date
     if ( j.contains( "msft:expiry" ) )
     {
       const QString expiry = QString::fromStdString( j.at( "msft:expiry" ) );
-      qDebug() << "Expires at: " << expiry;
       sas.expiry = QDateTime::fromString( expiry, Qt::ISODate );
+      qDebug() << "Expires at: " << expiry;
     }
     if ( sas.isValid() )
       storeSasToken( account, container, sas );
