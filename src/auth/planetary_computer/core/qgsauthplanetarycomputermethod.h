@@ -1,7 +1,7 @@
 /***************************************************************************
     qgsauthplanetarycomputermethod.h
     ------------------------
-    begin                : October 2025
+    begin                : August 2025
     copyright            : (C) 2025 by Stefanos Natsis
     author               : Stefanos Natsis
     email                : uclaros at gmail dot com
@@ -33,11 +33,6 @@ class QgsAuthPlanetaryComputerMethod : public QgsAuthMethod
     static const QString AUTH_METHOD_KEY;
     static const QString AUTH_METHOD_DESCRIPTION;
     static const QString AUTH_METHOD_DISPLAY_DESCRIPTION;
-    static const QString BLOB_STORAGE_SAS_SIGN_URL;
-    static const QString OPEN_SAS_SIGN_URL;
-    static const QString PRO_SAS_SIGN_URL;
-    static const QString BLOB_STORAGE_DOMAIN;
-    static const QString OAUTH_REQUEST_URL;
 
     explicit QgsAuthPlanetaryComputerMethod();
 
@@ -67,10 +62,12 @@ class QgsAuthPlanetaryComputerMethod : public QgsAuthMethod
         QString token;
     };
 
-    QString sasTokenForUrl( const QUrl &url, const QString &signUrl, const QString &authcfg );
+    void updateUri( QString &uri, const QgsAuthMethodConfig &config, const QString &authcfg );
 
-    void storeSasToken( const QString &account, const QString &container, const SasToken &token );
-    SasToken retrieveSasToken( const QString &account, const QString &container );
+    QString sasTokenForUrl( const QUrl &url, const QString &signUrl, const QString &authcfg, bool isPro );
+
+    void storeSasToken( const QString &authcfg, const QString &account, const QString &container, const SasToken &token );
+    SasToken retrieveSasToken( const QString &authcfg, const QString &account, const QString &container );
 
     QgsAuthMethodConfig getMethodConfig( const QString &authcfg, bool fullconfig = true );
 
@@ -78,7 +75,11 @@ class QgsAuthPlanetaryComputerMethod : public QgsAuthMethod
 
     void removeMethodConfig( const QString &authcfg );
 
-    std::unique_ptr<QgsAuthMethod> mOauth2;
+    QgsAuthMethod *mOauth2 = nullptr;
+
+    static const QString OPEN_SAS_SIGN_URL;
+    static const QString PRO_SAS_SIGN_URL;
+    static const QString BLOB_STORAGE_DOMAIN;
 
     static QMap<QString, SasToken> sSasTokensCache;
     static QMap<QString, QgsAuthMethodConfig> sAuthConfigCache;

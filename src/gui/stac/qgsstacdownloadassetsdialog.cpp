@@ -21,7 +21,6 @@
 #include "qgsproject.h"
 #include "qgsmessagebar.h"
 #include "qgsapplication.h"
-#include "qgsauthmanager.h"
 
 #include <QTreeWidget>
 #include <QPushButton>
@@ -58,16 +57,8 @@ void QgsStacDownloadAssetsDialog::accept()
 {
   const QString folder = selectedFolder();
   const QStringList urls = selectedUrls();
-  for ( QString url : urls )
+  for ( const QString &url : urls )
   {
-    if ( !mAuthCfg.isEmpty() )
-    {
-      QStringList uriItems = { url };
-      if ( QgsApplication::authManager()->updateDataSourceUriItems( uriItems, mAuthCfg ) )
-      {
-        url = uriItems.first();
-      }
-    }
     QgsNetworkContentFetcherTask *fetcher = new QgsNetworkContentFetcherTask( url, mAuthCfg, QgsTask::CanCancel, tr( "Downloading STAC asset" ) );
 
     connect( fetcher, &QgsNetworkContentFetcherTask::errorOccurred, fetcher, [bar = mMessageBar]( QNetworkReply::NetworkError, const QString &errorMsg ) {

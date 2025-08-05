@@ -1,7 +1,7 @@
 /***************************************************************************
     qgsauthplanetarycomputeredit.cpp
     ------------------------
-    begin                : July 2025
+    begin                : August 2025
     copyright            : (C) 2025 by Stefanos Natsis
     author               : Stefanos Natsis
     email                : uclaros at gmail dot com
@@ -18,7 +18,10 @@
 #include "moc_qgsauthplanetarycomputeredit.cpp"
 #include "ui_qgsauthplanetarycomputeredit.h"
 
-#include "qgslogger.h"
+
+const QString QgsAuthPlanetaryComputerEdit::REQUEST_URL_TEMPLATE = QStringLiteral( "https://login.microsoftonline.com/%1/oauth2/v2.0/authorize" );
+const QString QgsAuthPlanetaryComputerEdit::TOKEN_URL_TEMPLATE = QStringLiteral( "https://login.microsoftonline.com/%1/oauth2/v2.0/token" );
+const QString QgsAuthPlanetaryComputerEdit::SCOPE = QStringLiteral( "https://geocatalog.spatio.azure.com/.default" );
 
 QgsAuthPlanetaryComputerEdit::QgsAuthPlanetaryComputerEdit( QWidget *parent )
   : QgsAuthMethodEdit( parent )
@@ -28,6 +31,7 @@ QgsAuthPlanetaryComputerEdit::QgsAuthPlanetaryComputerEdit( QWidget *parent )
   connect( cbType, static_cast<void ( QComboBox::* )( int )>( &QComboBox::currentIndexChanged ), this, &QgsAuthPlanetaryComputerEdit::updateServerType ); // also updates GUI
   connect( leRootUrl, &QLineEdit::textChanged, this, [this] { validateConfig(); } );
   connect( leClientId, &QLineEdit::textChanged, this, [this] { validateConfig(); } );
+  updateServerType( 0 );
 }
 
 
@@ -58,8 +62,8 @@ QgsStringMap QgsAuthPlanetaryComputerEdit::configMap() const
 
   if ( isPro )
   {
-    const QString requestUrl = QStringLiteral( "https://login.microsoftonline.com/%1/oauth2/v2.0/authorize" ).arg( tenantId.isEmpty() ? QStringLiteral( "organizations" ) : tenantId );
-    const QString tokenUrl = QStringLiteral( "https://login.microsoftonline.com/%1/oauth2/v2.0/token" ).arg( tenantId.isEmpty() ? QStringLiteral( "organizations" ) : tenantId );
+    const QString requestUrl = REQUEST_URL_TEMPLATE.arg( tenantId.isEmpty() ? QStringLiteral( "organizations" ) : tenantId );
+    const QString tokenUrl = TOKEN_URL_TEMPLATE.arg( tenantId.isEmpty() ? QStringLiteral( "organizations" ) : tenantId );
     const QString json = QStringLiteral(
                            "{"
                            "\"accessMethod\": 0,"
@@ -83,13 +87,13 @@ QgsStringMap QgsAuthPlanetaryComputerEdit::configMap() const
                            "\"refreshTokenUrl\": null,"
                            "\"requestTimeout\": 30,"
                            "\"requestUrl\": \"%2\","
-                           "\"scope\": \"https://geocatalog.spatio.azure.com/.default\","
+                           "\"scope\": \"%4\","
                            "\"tokenUrl\": \"%3\","
                            "\"username\": null,"
                            "\"version\": 1"
                            "}"
     )
-                           .arg( clientId, requestUrl, tokenUrl );
+                           .arg( clientId, requestUrl, tokenUrl, SCOPE );
 
 
     config.insert( QStringLiteral( "oauth2config" ), json );
@@ -100,7 +104,7 @@ QgsStringMap QgsAuthPlanetaryComputerEdit::configMap() const
   }
   else
   {
-    config.insert( QStringLiteral( "serverType" ), QStringLiteral( "public" ) );
+    config.insert( QStringLiteral( "serverType" ), QStringLiteral( "open" ) );
   }
   return config;
 }
@@ -111,12 +115,10 @@ void QgsAuthPlanetaryComputerEdit::loadConfig( const QgsStringMap &configmap )
   clearConfig();
 
   mConfigMap = configmap;
+  whileBlocking( leClientId )->setText( configmap.value( QStringLiteral( "clientId" ) ) );
+  whileBlocking( leRootUrl )->setText( configmap.value( QStringLiteral( "rootUrl" ) ) );
+  whileBlocking( leTenantId )->setText( configmap.value( QStringLiteral( "tenantId" ) ) );
   updateServerType( configmap.value( QStringLiteral( "serverType" ) ) == QLatin1String( "pro" ) ? 1 : 0 );
-  leClientId->setText( configmap.value( QStringLiteral( "clientId" ) ) );
-  leRootUrl->setText( configmap.value( QStringLiteral( "rootUrl" ) ) );
-  leTenantId->setText( configmap.value( QStringLiteral( "tenantId" ) ) );
-
-  validateConfig();
 }
 
 
@@ -128,9 +130,10 @@ void QgsAuthPlanetaryComputerEdit::resetConfig()
 
 void QgsAuthPlanetaryComputerEdit::clearConfig()
 {
-  leClientId->clear();
-  leRootUrl->clear();
-  leTenantId->clear();
+  whileBlocking( leClientId )->clear();
+  whileBlocking( leRootUrl )->clear();
+  whileBlocking( leTenantId )->clear();
+  updateServerType( 0 );
 }
 
 
@@ -150,5 +153,5 @@ void QgsAuthPlanetaryComputerEdit::updateServerType( int indx )
   lblTenantId->setVisible( isPro );
   leTenantId->setVisible( isPro );
 
-  validateConfig();
+  validateConfig(); // NOLINT
 }

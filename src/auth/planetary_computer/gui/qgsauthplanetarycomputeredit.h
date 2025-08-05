@@ -1,7 +1,7 @@
 /***************************************************************************
     qgsauthplanetarycomputeredit.h
     ------------------------
-    begin                : July 2025
+    begin                : August 2025
     copyright            : (C) 2025 by Stefanos Natsis
     author               : Stefanos Natsis
     email                : uclaros at gmail dot com
@@ -47,6 +47,10 @@ class QgsAuthPlanetaryComputerEdit : public QgsAuthMethodEdit, private Ui::QgsAu
 
     QgsStringMap mConfigMap;
     bool mValid = false;
+
+    static const QString REQUEST_URL_TEMPLATE;
+    static const QString TOKEN_URL_TEMPLATE;
+    static const QString SCOPE;
 };
 
 #endif // QGSAUTHPLANETARYCOMPUTEREDIT_H
