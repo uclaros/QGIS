@@ -135,12 +135,16 @@ QgsMimeDataUtils::UriList QgsStacItemItem::mimeUris() const
       uri.layerType = QStringLiteral( "pointcloud" );
       uri.providerKey = QStringLiteral( "copc" );
       uri.uri = it->href();
+      if ( !authcfg.isEmpty() )
+        uri.uri.append( QStringLiteral( " authcfg='%1'" ).arg( authcfg ) );
     }
     else if ( it->href().endsWith( QLatin1String( "/ept.json" ) ) )
     {
       uri.layerType = QStringLiteral( "pointcloud" );
       uri.providerKey = QStringLiteral( "ept" );
       uri.uri = it->href();
+      if ( !authcfg.isEmpty() )
+        uri.uri.append( QStringLiteral( " authcfg='%1'" ).arg( authcfg ) );
     }
     uri.name = it->title().isEmpty() ? url.fileName() : it->title();
     uris.append( uri );
