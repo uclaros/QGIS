@@ -148,6 +148,7 @@
 #endif
 #include "qgsalgorithmgrid.h"
 #include "qgsalgorithmhillshade.h"
+#include "qgsalgorithmhubdistance.h"
 #include "qgsalgorithmjoinbyattribute.h"
 #include "qgsalgorithmjoinbylocation.h"
 #include "qgsalgorithmjoinbylocationsummary.h"
@@ -170,6 +171,7 @@
 #include "qgsalgorithmmergelines.h"
 #include "qgsalgorithmmergevector.h"
 #include "qgsalgorithmmeshsurfacetopolygon.h"
+#include "qgsalgorithmminimumboundinggeometry.h"
 #include "qgsalgorithmminimumenclosingcircle.h"
 #include "qgsalgorithmmultidifference.h"
 #include "qgsalgorithmmultiintersection.h"
@@ -272,6 +274,7 @@
 #include "qgsalgorithmtranslate.h"
 #include "qgsalgorithmtruncatetable.h"
 #include "qgsalgorithmunion.h"
+#include "qgsalgorithmuniquevalues.h"
 #include "qgsalgorithmuniquevalueindex.h"
 #include "qgsalgorithmurlopener.h"
 #include "qgsalgorithmhttprequest.h"
@@ -479,6 +482,7 @@ void QgsNativeAlgorithms::loadAlgorithms()
 #endif
   addAlgorithm( new QgsGridAlgorithm() );
   addAlgorithm( new QgsHillshadeAlgorithm() );
+  addAlgorithm( new QgsHubDistanceAlgorithm() );
   addAlgorithm( new QgsImportPhotosAlgorithm() );
   addAlgorithm( new QgsInterpolatePointAlgorithm() );
   addAlgorithm( new QgsIntersectionAlgorithm() );
@@ -508,6 +512,7 @@ void QgsNativeAlgorithms::loadAlgorithms()
   addAlgorithm( new QgsMeshExportCrossSection() );
   addAlgorithm( new QgsMeshExportTimeSeries() );
   addAlgorithm( new QgsMeshSurfaceToPolygonAlgorithm() );
+  addAlgorithm( new QgsMinimumBoundingGeometryAlgorithm() );
   addAlgorithm( new QgsMinimumEnclosingCircleAlgorithm() );
   addAlgorithm( new QgsMultiDifferenceAlgorithm() );
   addAlgorithm( new QgsMultiIntersectionAlgorithm() );
@@ -634,6 +639,7 @@ void QgsNativeAlgorithms::loadAlgorithms()
   addAlgorithm( new QgsTranslateAlgorithm() );
   addAlgorithm( new QgsTruncateTableAlgorithm() );
   addAlgorithm( new QgsUnionAlgorithm() );
+  addAlgorithm( new QgsUniqueValuesAlgorithm() );
   addAlgorithm( new QgsUpdateLayerMetadataAlgorithm() );
   addAlgorithm( new QgsOpenUrlAlgorithm() );
   addAlgorithm( new QgsHttpRequestAlgorithm() );
