@@ -105,6 +105,20 @@ class _3D_EXPORT Qgs3DMapCanvas : public QWindow
      */
     QgsRayCastResult castRay( const QPoint &screenPoint, QgsRayCastContext context );
 
+    /**
+     * Sets the active map \a tool that will receive events from the 3D canvas. Does not transfer ownership.
+     * If the tool is NULLPTR, events will be used for camera manipulation.
+     * \since QGIS 4.0
+     */
+    void setMapTool( Qgs3DMapTool *tool );
+
+    /**
+     * Returns the active map tool that will receive events from the 3D canvas.
+     * If the tool is NULLPTR, events will be used for camera manipulation.
+     * \since QGIS 4.0
+     */
+    Qgs3DMapTool *mapTool() const { return mMapTool; }
+
 #ifndef SIP_RUN
 
     /**
@@ -143,18 +157,6 @@ class _3D_EXPORT Qgs3DMapCanvas : public QWindow
 
     //! Saves the current scene as an image
     void saveAsImage( const QString &fileName, const QString &fileFormat );
-
-    /**
-     * Sets the active map \a tool that will receive events from the 3D canvas. Does not transfer ownership.
-     * If the tool is NULLPTR, events will be used for camera manipulation.
-     */
-    void setMapTool( Qgs3DMapTool *tool );
-
-    /**
-     * Returns the active map tool that will receive events from the 3D canvas.
-     * If the tool is NULLPTR, events will be used for camera manipulation.
-     */
-    Qgs3DMapTool *mapTool() const { return mMapTool; }
 
     /**
      * Returns the 3D engine.
