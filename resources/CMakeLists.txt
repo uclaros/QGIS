@@ -10,6 +10,7 @@ file(GLOB_RECURSE PALETTES_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} palettes/*
 # Individual files to install (for srs.db, see below)
 set(RESOURCES_FILES
   qgis.db
+  doom1.wad
   symbology-style.xml
   spatialite.db
   customization.xml
