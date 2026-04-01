@@ -66,6 +66,7 @@ class APP_EXPORT QgsStatusBarCoordinatesWidget : public QWidget
     void contributors();
     void hackfests();
     void userGroups();
+    void doom();
     void showExtent();
     void ensureCoordinatesVisible();
     void updateCoordinateDisplay();

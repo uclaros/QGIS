@@ -1,4 +1,5 @@
 add_subdirectory(../../external/libdxfrw dwg/libdxfrw)
+add_subdirectory(../../external/doomgeneric doomgeneric)
 if(NOT WIN32)
 SUBDIRS(${CMAKE_SOURCE_DIR}/external/qt-unix-signals)
 endif()
@@ -31,6 +32,8 @@ set(QGIS_APP_SRCS
   qgscontributorsmapcanvas.cpp
   qgsdevtoolspanelwidget.cpp
   qgsdiscoverrelationsdialog.cpp
+  qgsdoomengine.cpp
+  qgsdoomlayer.cpp
   qgsdxfexportdialog.cpp
   qgselevationshadingrenderersettingswidget.cpp
   qgsformannotationdialog.cpp
@@ -591,6 +594,7 @@ target_link_libraries(qgis_app
   qgis_analysis
   qgis_native
   libdxfrw
+  doomgeneric
 )
 
 target_compile_definitions(qgis_app PRIVATE "-DQT_NO_FOREACH")

@@ -18,11 +18,16 @@
 #include "qgsapplication.h"
 #include "qgscoordinatereferencesystemutils.h"
 #include "qgscoordinateutils.h"
+#include "qgsdoomlayer.h"
+#include "qgslayertree.h"
 #include "qgsmapcanvas.h"
 #include "qgsproject.h"
 #include "qgsvectorlayer.h"
 #include "qgsvectorlayerjoininfo.h"
 
+#include <QDir>
+#include <QFile>
+#include <QFileDialog>
 #include <QFileInfo>
 #include <QFont>
 #include <QHBoxLayout>
@@ -167,6 +172,11 @@ void QgsStatusBarCoordinatesWidget::validateCoordinates()
   {
     // it's friday afternoon and too late to start another piece of work...
     emit weAreBored();
+  }
+  else if ( mLineEdit->text() == "doom"_L1 )
+  {
+    doom();
+    return;
   }
 
   bool xOk = false;
@@ -345,6 +355,52 @@ void QgsStatusBarCoordinatesWidget::userGroups()
   const QString fileNameStyle = QgsApplication::pkgDataPath() + u"/resources/data/user_groups.qml"_s;
   bool styleFlag = false;
   layer->loadNamedStyle( fileNameStyle, styleFlag, true );
+}
+
+void QgsStatusBarCoordinatesWidget::doom()
+{
+  if ( !mMapCanvas )
+    return;
+
+  // Search common locations for a DOOM WAD before prompting
+  const QStringList wadNames { u"doom1.wad"_s, u"doom.wad"_s, u"freedoom1.wad"_s, u"DOOM1.WAD"_s, u"DOOM.WAD"_s };
+  const QStringList searchDirs {
+    QDir::currentPath(),
+    QDir::homePath(),
+    QgsApplication::pkgDataPath() + u"/resources"_s,
+  };
+
+  QString wadPath;
+  for ( const QString &dir : searchDirs )
+  {
+    for ( const QString &name : wadNames )
+    {
+      const QString candidate = dir + u"/"_s + name;
+      if ( QFile::exists( candidate ) )
+      {
+        wadPath = candidate;
+        break;
+      }
+    }
+    if ( !wadPath.isEmpty() )
+      break;
+  }
+
+  if ( wadPath.isEmpty() )
+  {
+    wadPath = QFileDialog::getOpenFileName( this, tr( "Select DOOM WAD File" ), QDir::homePath(), tr( "DOOM WAD Files (*.wad *.WAD)" ) );
+  }
+
+  if ( wadPath.isEmpty() )
+    return;
+
+  QgsDoomLayer *layer = new QgsDoomLayer( mMapCanvas, wadPath );
+  layer->setExtent( mMapCanvas->extent() );
+  QgsProject::instance()->addMapLayer( layer, false );
+
+  // Insert at the bottom of the layer tree so existing layers render on top
+  QgsLayerTree *root = QgsProject::instance()->layerTreeRoot();
+  root->insertLayer( root->children().count(), layer );
 }
 
 void QgsStatusBarCoordinatesWidget::extentsViewToggled( bool flag )
