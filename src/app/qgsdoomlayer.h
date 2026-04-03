@@ -15,24 +15,57 @@
 #ifndef QGSDOOMLAYER_H
 #define QGSDOOMLAYER_H
 
+#include "qgscoordinatereferencesystem.h"
 #include "qgsmaplayerrenderer.h"
 #include "qgspluginlayer.h"
+#include "qgsrasterinterface.h"
+#include "qgsrectangle.h"
 
 class QgsDoomEngine;
 class QgsMapCanvas;
 class QgsRenderContext;
 
 /**
- * \brief Renderer for QgsDoomLayer — paints the current DOOM frame onto the canvas.
+ * \brief Minimal QgsRasterInterface that serves the current DOOM frame as a raster block.
+ *
+ * Wraps QgsDoomEngine so that QgsRasterProjector can reproject doom frames
+ * from the layer's native CRS to any destination CRS.
+ *
+ * block() crops and scales the doom frame to the requested sub-extent and
+ * output dimensions.  Pixels outside the layer extent are transparent.
+ */
+class QgsDoomProvider : public QgsRasterInterface
+{
+  public:
+    QgsDoomProvider( QgsDoomEngine *engine, const QgsRectangle &extent );
+
+    QgsRasterInterface *clone() const override;
+    int bandCount() const override { return 1; }
+    Qgis::DataType dataType( int bandNo ) const override;
+    QgsRasterBlock *block( int bandNo, const QgsRectangle &extent, int width, int height, QgsRasterBlockFeedback *feedback = nullptr ) override;
+
+    QgsRectangle extent() const override { return mExtent; }
+    int xSize() const override;
+    int ySize() const override;
+
+  private:
+    QgsDoomEngine *mEngine = nullptr;
+    QgsRectangle mExtent;
+};
+
+/**
+ * \brief Renderer for QgsDoomLayer — reprojects and paints the current DOOM frame onto the canvas.
  */
 class QgsDoomLayerRenderer : public QgsMapLayerRenderer
 {
   public:
-    QgsDoomLayerRenderer( const QString &layerId, QgsDoomEngine *engine, QgsRenderContext &context );
+    QgsDoomLayerRenderer( const QString &layerId, QgsDoomEngine *engine, const QgsRectangle &extent, const QgsCoordinateReferenceSystem &layerCrs, QgsRenderContext &context );
     bool render() override;
 
   private:
     QgsDoomEngine *mEngine = nullptr;
+    QgsRectangle mExtent;
+    QgsCoordinateReferenceSystem mLayerCrs;
 };
 
 /**

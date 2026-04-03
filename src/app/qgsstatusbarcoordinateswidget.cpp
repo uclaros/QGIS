@@ -365,7 +365,6 @@ void QgsStatusBarCoordinatesWidget::doom()
     return;
 
   QgsDoomLayer *layer = new QgsDoomLayer( mMapCanvas, wadPath );
-  layer->setExtent( mMapCanvas->extent() );
   QgsProject::instance()->addMapLayer( layer, false );
 
   // Insert at the bottom of the layer tree so existing layers render on top
