@@ -37,12 +37,13 @@ class CORE_EXPORT QgsVectorFieldStreamlineSettings
     {
 
       /**
-       * Seeds start points on the vertices mesh or user regular grid
+       * Seeds start points on the natural positions of the data, that is the mesh vertices or
+       * the raster pixel centers, or on a user defined regular grid
        */
-      MeshGridded = 0,
+      DataGridded = 0,
 
       /**
-       * Seeds start points randomly on the mesh
+       * Seeds start points randomly over the data
        */
       Random
     };
@@ -61,7 +62,7 @@ class CORE_EXPORT QgsVectorFieldStreamlineSettings
     QDomElement writeXml( QDomDocument &doc ) const;
 
   private:
-    QgsVectorFieldStreamlineSettings::SeedingStartPointsMethod mSeedingMethod = SeedingStartPointsMethod::MeshGridded;
+    QgsVectorFieldStreamlineSettings::SeedingStartPointsMethod mSeedingMethod = SeedingStartPointsMethod::DataGridded;
     double mSeedingDensity = 0.15;
 };
 

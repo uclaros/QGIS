@@ -16,6 +16,8 @@
 #include "qgsvectorfieldengine.h"
 
 #include "qgsrendercontext.h"
+#include "qgsvectorfieldstreamfield.h"
+#include "qgsvectorfieldvaluesource.h"
 
 #include <QString>
 
@@ -60,6 +62,83 @@ QgsVectorFieldEngine::QgsVectorFieldEngine( double datasetMagMaximumValue, doubl
   const double penWidth = mContext.convertToPainterUnits( mCfg.lineWidth(), Qgis::RenderUnit::Millimeters );
   pen.setWidthF( penWidth );
   painter->setPen( pen );
+}
+
+QgsVectorFieldEngine::~QgsVectorFieldEngine() = default;
+
+void QgsVectorFieldEngine::drawGlyph( const QgsPointXY &lineStart, double xVal, double yVal, double magnitude )
+{
+  switch ( mCfg.symbology() )
+  {
+    case QgsVectorFieldSettings::Symbology::Arrows:
+      drawArrow( lineStart, xVal, yVal, magnitude );
+      break;
+    case QgsVectorFieldSettings::Symbology::WindBarbs:
+      drawWindBarb( lineStart, xVal, yVal, magnitude );
+      break;
+    case QgsVectorFieldSettings::Symbology::Streamlines:
+    case QgsVectorFieldSettings::Symbology::Traces:
+      // not drawn one glyph at a time, see drawStreamlines() and drawTraces()
+      break;
+  }
+}
+
+void QgsVectorFieldEngine::drawStreamlines( std::unique_ptr<QgsVectorFieldValueSource> source, QgsRasterBlockFeedback *feedback )
+{
+  if ( !source )
+    return;
+
+  auto field = std::make_unique<QgsVectorFieldStreamlinesField>( std::move( source ), mContext, mVectorColoring, feedback );
+
+  field->updateSize( mContext );
+  field->setPixelFillingDensity( mCfg.streamLinesSettings().seedingDensity() );
+  field->setLineWidth( mContext.convertToPainterUnits( mCfg.lineWidth(), Qgis::RenderUnit::Millimeters ) );
+  field->setColor( mCfg.color() );
+  field->setFilter( mCfg.filterMin(), mCfg.filterMax() );
+
+  switch ( mCfg.streamLinesSettings().seedingMethod() )
+  {
+    case QgsVectorFieldStreamlineSettings::SeedingStartPointsMethod::DataGridded:
+      if ( mCfg.isOnUserDefinedGrid() )
+        field->addGriddedTraces( mCfg.userGridCellWidth(), mCfg.userGridCellHeight() );
+      else
+        field->addTracesOnDataPoints( mContext.mapExtent(), mCfg.userGridCellWidth(), mCfg.userGridCellHeight() );
+      break;
+    case QgsVectorFieldStreamlineSettings::SeedingStartPointsMethod::Random:
+      field->addRandomTraces();
+      break;
+  }
+
+  if ( mContext.renderingStopped() )
+    return;
+
+  field->compose();
+  mContext.painter()->drawImage( field->topLeft(), field->image() );
+}
+
+void QgsVectorFieldEngine::drawTraces( std::unique_ptr<QgsVectorFieldValueSource> source )
+{
+  if ( !source )
+    return;
+
+  auto field = std::make_unique<QgsVectorFieldParticleTracesField>( std::move( source ), mContext, mVectorColoring );
+
+  field->updateSize( mContext );
+  field->setParticleSize( mContext.convertToPainterUnits( mCfg.lineWidth(), Qgis::RenderUnit::Millimeters ) );
+  field->setParticlesCount( mCfg.tracesSettings().particlesCount() );
+  field->setTailFactor( 1 );
+  field->setStumpParticleWithLifeTime( false );
+
+  // as the particles go through 1 pixel for dt=1 and Vmax, the maximum tail length is the time step
+  field->setTimeStep( mContext.convertToPainterUnits( mCfg.tracesSettings().maximumTailLength(), mCfg.tracesSettings().maximumTailLengthUnit() ) );
+
+  field->addRandomParticles();
+  field->moveParticles();
+
+  if ( mContext.renderingStopped() )
+    return;
+
+  mContext.painter()->drawImage( field->topLeft(), field->image() );
 }
 
 bool QgsVectorFieldEngine::calcVectorLineEnd(

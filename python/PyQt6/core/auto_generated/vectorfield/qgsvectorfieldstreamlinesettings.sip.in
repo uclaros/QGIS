@@ -29,7 +29,7 @@ by streamlines.
     enum class SeedingStartPointsMethod
     {
 
-      MeshGridded,
+      DataGridded,
 
       Random
     };

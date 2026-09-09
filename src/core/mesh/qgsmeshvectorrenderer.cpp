@@ -21,7 +21,7 @@
 
 #include "qgsmaptopixel.h"
 #include "qgsmeshlayerutils.h"
-#include "qgsmeshtracerenderer.h"
+#include "qgsmeshvectorfieldvaluesource.h"
 #include "qgsrendercontext.h"
 #include "qgstriangularmesh.h"
 
@@ -35,7 +35,7 @@ inline bool nodataValue( double x, double y )
   return ( std::isnan( x ) || std::isnan( y ) );
 }
 
-QgsMeshVectorArrowRenderer::QgsMeshVectorArrowRenderer(
+QgsMeshVectorGlyphRenderer::QgsMeshVectorGlyphRenderer(
   const QgsTriangularMesh &m,
   const QgsMeshDataBlock &datasetValues,
   const QVector<double> &datasetValuesMag,
@@ -75,9 +75,9 @@ QgsMeshVectorArrowRenderer::QgsMeshVectorArrowRenderer(
   mBufferedExtent.setYMaximum( mBufferedExtent.yMaximum() + extension );
 }
 
-QgsMeshVectorArrowRenderer::~QgsMeshVectorArrowRenderer() = default;
+QgsMeshVectorGlyphRenderer::~QgsMeshVectorGlyphRenderer() = default;
 
-void QgsMeshVectorArrowRenderer::draw()
+void QgsMeshVectorGlyphRenderer::draw()
 {
   if ( mCfg.isOnUserDefinedGrid() )
   {
@@ -97,7 +97,7 @@ void QgsMeshVectorArrowRenderer::draw()
   }
 }
 
-double QgsMeshVectorArrowRenderer::calcExtentBufferSize() const
+double QgsMeshVectorGlyphRenderer::calcExtentBufferSize() const
 {
   double buffer = 0;
   switch ( mCfg.arrowSettings().shaftLengthMethod() )
@@ -129,7 +129,7 @@ double QgsMeshVectorArrowRenderer::calcExtentBufferSize() const
 }
 
 
-void QgsMeshVectorArrowRenderer::drawVectorDataOnVertices()
+void QgsMeshVectorGlyphRenderer::drawVectorDataOnVertices()
 {
   const QVector<QgsMeshVertex> &vertices = mTriangularMesh.vertices();
   QSet<int> verticesToDraw;
@@ -155,7 +155,7 @@ void QgsMeshVectorArrowRenderer::drawVectorDataOnVertices()
   drawVectorDataOnPoints( verticesToDraw, vertices );
 }
 
-void QgsMeshVectorArrowRenderer::drawVectorDataOnPoints( const QSet<int> indexesToRender, const QVector<QgsMeshVertex> &points )
+void QgsMeshVectorGlyphRenderer::drawVectorDataOnPoints( const QSet<int> indexesToRender, const QVector<QgsMeshVertex> &points )
 {
   for ( const int i : indexesToRender )
   {
@@ -175,11 +175,11 @@ void QgsMeshVectorArrowRenderer::drawVectorDataOnPoints( const QSet<int> indexes
     const double V = mDatasetValuesMag[i]; // pre-calculated magnitude
     const QgsPointXY lineStart = mContext.mapToPixel().transform( center.x(), center.y() );
 
-    drawVector( lineStart, xVal, yVal, V );
+    mEngine.drawGlyph( lineStart, xVal, yVal, V );
   }
 }
 
-void QgsMeshVectorArrowRenderer::drawVectorDataOnFaces()
+void QgsMeshVectorGlyphRenderer::drawVectorDataOnFaces()
 {
   const QList<int> trianglesInExtent = mTriangularMesh.faceIndexesForRectangle( mBufferedExtent );
   const QVector<QgsMeshVertex> &centroids = mTriangularMesh.faceCentroids();
@@ -187,7 +187,7 @@ void QgsMeshVectorArrowRenderer::drawVectorDataOnFaces()
   drawVectorDataOnPoints( nativeFacesInExtent, centroids );
 }
 
-void QgsMeshVectorArrowRenderer::drawVectorDataOnEdges()
+void QgsMeshVectorGlyphRenderer::drawVectorDataOnEdges()
 {
   const QList<int> edgesInExtent = mTriangularMesh.edgeIndexesForRectangle( mBufferedExtent );
   const QVector<QgsMeshVertex> &centroids = mTriangularMesh.edgeCentroids();
@@ -195,7 +195,7 @@ void QgsMeshVectorArrowRenderer::drawVectorDataOnEdges()
   drawVectorDataOnPoints( nativeEdgesInExtent, centroids );
 }
 
-void QgsMeshVectorArrowRenderer::drawVectorDataOnGrid()
+void QgsMeshVectorGlyphRenderer::drawVectorDataOnGrid()
 {
   if ( mDataType == QgsMeshDatasetGroupMetadata::DataType::DataOnEdges || mDataType == QgsMeshDatasetGroupMetadata::DataType::DataOnVolumes )
     return;
@@ -259,15 +259,49 @@ void QgsMeshVectorArrowRenderer::drawVectorDataOnGrid()
           continue;
 
         const QgsPointXY lineStart( x, y );
-        drawVector( lineStart, val.x(), val.y(), val.scalar() );
+        mEngine.drawGlyph( lineStart, val.x(), val.y(), val.scalar() );
       }
     }
   }
 }
 
-void QgsMeshVectorArrowRenderer::drawVector( const QgsPointXY &lineStart, double xVal, double yVal, double magnitude )
+QgsMeshVectorStreamRenderer::QgsMeshVectorStreamRenderer(
+  const QgsTriangularMesh &m,
+  const QgsMeshDataBlock &datasetValues,
+  const QgsMeshDataBlock &scalarActiveFaceFlagValues,
+  const QVector<double> &datasetValuesMag,
+  double datasetMagMaximumValue,
+  double datasetMagMinimumValue,
+  QgsMeshDatasetGroupMetadata::DataType dataType,
+  const QgsVectorFieldSettings &settings,
+  QgsRenderContext &context,
+  const QgsRectangle &layerExtent,
+  QgsRasterBlockFeedback *feedBack,
+  QSize size
+)
+  : mCfg( settings )
+  , mFeedBack( feedBack )
+  , mSource( QgsMeshVectorFieldValueSource::create( m, datasetValues, scalarActiveFaceFlagValues, datasetValuesMag, dataType, layerExtent, datasetMagMaximumValue ) )
+  , mEngine( datasetMagMaximumValue, datasetMagMinimumValue, settings, context, size )
+{}
+
+QgsMeshVectorStreamRenderer::~QgsMeshVectorStreamRenderer() = default;
+
+void QgsMeshVectorStreamRenderer::draw()
 {
-  mEngine.drawArrow( lineStart, xVal, yVal, magnitude );
+  switch ( mCfg.symbology() )
+  {
+    case QgsVectorFieldSettings::Symbology::Streamlines:
+      mEngine.drawStreamlines( std::move( mSource ), mFeedBack );
+      break;
+    case QgsVectorFieldSettings::Symbology::Traces:
+      mEngine.drawTraces( std::move( mSource ) );
+      break;
+    case QgsVectorFieldSettings::Symbology::Arrows:
+    case QgsVectorFieldSettings::Symbology::WindBarbs:
+      // drawn glyph by glyph, see QgsMeshVectorGlyphRenderer
+      break;
+  }
 }
 
 QgsMeshVectorRenderer::~QgsMeshVectorRenderer() = default;
@@ -283,7 +317,7 @@ QgsMeshVectorRenderer *QgsMeshVectorRenderer::makeVectorRenderer(
   const QgsVectorFieldSettings &settings,
   QgsRenderContext &context,
   const QgsRectangle &layerExtent,
-  QgsMeshLayerRendererFeedback *feedBack,
+  QgsRasterBlockFeedback *feedBack,
   const QSize &size
 )
 {
@@ -292,43 +326,17 @@ QgsMeshVectorRenderer *QgsMeshVectorRenderer::makeVectorRenderer(
   switch ( settings.symbology() )
   {
     case QgsVectorFieldSettings::Symbology::Arrows:
-      renderer = new QgsMeshVectorArrowRenderer( m, datasetVectorValues, datasetValuesMag, datasetMagMaximumValue, datasetMagMinimumValue, dataType, settings, context, size );
+    case QgsVectorFieldSettings::Symbology::WindBarbs:
+      renderer = new QgsMeshVectorGlyphRenderer( m, datasetVectorValues, datasetValuesMag, datasetMagMaximumValue, datasetMagMinimumValue, dataType, settings, context, size );
       break;
     case QgsVectorFieldSettings::Symbology::Streamlines:
-      renderer
-        = new QgsMeshVectorStreamlineRenderer( m, datasetVectorValues, scalarActiveFaceFlagValues, datasetValuesMag, dataType == QgsMeshDatasetGroupMetadata::DataType::DataOnVertices, settings, context, layerExtent, feedBack, datasetMagMaximumValue );
-      break;
     case QgsVectorFieldSettings::Symbology::Traces:
       renderer
-        = new QgsMeshVectorTraceRenderer( m, datasetVectorValues, scalarActiveFaceFlagValues, dataType == QgsMeshDatasetGroupMetadata::DataType::DataOnVertices, settings, context, layerExtent, datasetMagMaximumValue );
-      break;
-    case QgsVectorFieldSettings::Symbology::WindBarbs:
-      renderer = new QgsMeshVectorWindBarbRenderer( m, datasetVectorValues, datasetValuesMag, datasetMagMaximumValue, datasetMagMinimumValue, dataType, settings, context, size );
+        = new QgsMeshVectorStreamRenderer( m, datasetVectorValues, scalarActiveFaceFlagValues, datasetValuesMag, datasetMagMaximumValue, datasetMagMinimumValue, dataType, settings, context, layerExtent, feedBack, size );
       break;
   }
 
   return renderer;
 }
 
-
-QgsMeshVectorWindBarbRenderer::QgsMeshVectorWindBarbRenderer(
-  const QgsTriangularMesh &m,
-  const QgsMeshDataBlock &datasetValues,
-  const QVector<double> &datasetValuesMag,
-  double datasetMagMaximumValue,
-  double datasetMagMinimumValue,
-  QgsMeshDatasetGroupMetadata::DataType dataType,
-  const QgsVectorFieldSettings &settings,
-  QgsRenderContext &context,
-  QSize size
-)
-  : QgsMeshVectorArrowRenderer( m, datasetValues, datasetValuesMag, datasetMagMinimumValue, datasetMagMaximumValue, dataType, settings, context, size )
-{}
-
-QgsMeshVectorWindBarbRenderer::~QgsMeshVectorWindBarbRenderer() = default;
-
-void QgsMeshVectorWindBarbRenderer::drawVector( const QgsPointXY &lineStart, double xVal, double yVal, double magnitude )
-{
-  mEngine.drawWindBarb( lineStart, xVal, yVal, magnitude );
-}
 ///@endcond

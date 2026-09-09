@@ -318,7 +318,7 @@
        <widget class="QComboBox" name="mStreamlinesSeedingMethodComboBox">
         <item>
          <property name="text">
-          <string>On Mesh/Grid</string>
+          <string>On Data/Grid</string>
          </property>
         </item>
         <item>

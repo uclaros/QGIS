@@ -292,7 +292,7 @@ void QgsVectorFieldSettingsWidget::onSymbologyChanged( int currentIndex )
   mDisplayVectorsOnGridGroupBox->setEnabled(
     currentIndex == static_cast< int >( QgsVectorFieldSettings::Symbology::Arrows )
     || currentIndex == static_cast< int >( QgsVectorFieldSettings::Symbology::WindBarbs )
-    || ( currentIndex == static_cast< int >( QgsVectorFieldSettings::Symbology::Streamlines ) && mStreamlinesSeedingMethodComboBox->currentIndex() == static_cast< int >( QgsVectorFieldStreamlineSettings::SeedingStartPointsMethod::MeshGridded ) )
+    || ( currentIndex == static_cast< int >( QgsVectorFieldSettings::Symbology::Streamlines ) && mStreamlinesSeedingMethodComboBox->currentIndex() == static_cast< int >( QgsVectorFieldStreamlineSettings::SeedingStartPointsMethod::DataGridded ) )
   );
 }
 

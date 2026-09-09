@@ -1,7 +1,7 @@
 /************************************************************************
  * This file has been generated automatically from                      *
  *                                                                      *
- * src/core/mesh/qgsmeshtracerenderer.h                                 *
+ * src/core/vectorfield/qgsvectorfieldtraceanimationgenerator.h         *
  *                                                                      *
  * Do not edit manually ! Edit header and run scripts/sipify.py again   *
  ************************************************************************/
@@ -12,38 +12,42 @@
 
 
 
-class QgsMeshVectorTraceAnimationGenerator
+class QgsVectorFieldTraceAnimationGenerator
 {
 %Docstring(signature="appended")
-A wrapper for :py:class:`QgsMeshParticuleTracesField` used to render the
-particles.
+Renders animated particle traces over a vector field.
 
-Available for Python binding
+Unlike the trace symbology of a layer renderer, which draws a single
+static frame, this class keeps the particles alive between calls so that
+successive :py:func:`~imageRendered` calls produce the frames of an
+animation.
 
-.. versionadded:: 3.12
+The vector field can come from any source, so the same generator serves
+mesh layers and any other layer type able to expose a vector field.
 
-.. deprecated:: 4.2
-
-   Use :py:class:`QgsVectorFieldTraceAnimationGenerator` instead.
+.. versionadded:: 4.2
 %End
 
 %TypeHeaderCode
-#include "qgsmeshtracerenderer.h"
+#include "qgsvectorfieldtraceanimationgenerator.h"
 %End
   public:
 
- QgsMeshVectorTraceAnimationGenerator( QgsMeshLayer *layer, const QgsRenderContext &rendererContext );
+    static QgsVectorFieldTraceAnimationGenerator *fromMeshLayer( QgsMeshLayer *layer, const QgsRenderContext &rendererContext ) /Factory/;
 %Docstring
-Constructor to use with Python binding
+Returns a generator for the active vector dataset of ``layer``, or
+``None`` if the layer has no vector dataset to animate.
+
+The caller takes ownership of the returned generator.
 %End
 
-    QgsMeshVectorTraceAnimationGenerator( const QgsMeshVectorTraceAnimationGenerator &other );
+    QgsVectorFieldTraceAnimationGenerator( const QgsVectorFieldTraceAnimationGenerator &other );
 
-    ~QgsMeshVectorTraceAnimationGenerator();
+    ~QgsVectorFieldTraceAnimationGenerator();
 
     void seedRandomParticles( int count );
 %Docstring
-seeds particles in the vector fields
+Seeds particles in the vector field
 %End
 
     QImage imageRendered();
@@ -100,7 +104,7 @@ Sets the visual persistence of the tail
 /************************************************************************
  * This file has been generated automatically from                      *
  *                                                                      *
- * src/core/mesh/qgsmeshtracerenderer.h                                 *
+ * src/core/vectorfield/qgsvectorfieldtraceanimationgenerator.h         *
  *                                                                      *
  * Do not edit manually ! Edit header and run scripts/sipify.py again   *
  ************************************************************************/

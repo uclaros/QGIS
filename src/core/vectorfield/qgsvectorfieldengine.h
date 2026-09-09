@@ -26,16 +26,52 @@
 
 class QgsCoordinateTransform;
 class QgsPointXY;
+class QgsRasterBlockFeedback;
 class QgsRenderContext;
 class QgsScopedQPainterState;
+class QgsVectorFieldValueSource;
 
 class QgsVectorFieldEngine
 {
   public:
     QgsVectorFieldEngine( double datasetMagMaximumValue, double datasetMagMinimumValue, const QgsVectorFieldSettings &settings, QgsRenderContext &context, QSize size );
+    ~QgsVectorFieldEngine();
 
+    QgsVectorFieldEngine( const QgsVectorFieldEngine & ) = delete;
+    QgsVectorFieldEngine &operator=( const QgsVectorFieldEngine & ) = delete;
+
+    /**
+     * Draws a single arrow starting at \a lineStart, in painter coordinates.
+     */
     void drawArrow( const QgsPointXY &lineStart, double xVal, double yVal, double magnitude );
+
+    /**
+     * Draws a single wind barb centered on \a lineStart, in painter coordinates.
+     */
     void drawWindBarb( const QgsPointXY &lineStart, double xVal, double yVal, double magnitude );
+
+    /**
+     * Draws a single glyph at \a lineStart, in painter coordinates, using the symbology of the
+     * settings the engine was constructed with.
+     *
+     * Does nothing for the symbologies which are not drawn glyph by glyph, see drawStreamlines()
+     * and drawTraces().
+     */
+    void drawGlyph( const QgsPointXY &lineStart, double xVal, double yVal, double magnitude );
+
+    /**
+     * Integrates and draws streamlines over the whole rendered extent, sampling the vector field
+     * from \a source, which the engine takes ownership of.
+     *
+     * \a feedback is used to interrupt the rendering of the color ramp background image.
+     */
+    void drawStreamlines( std::unique_ptr<QgsVectorFieldValueSource> source, QgsRasterBlockFeedback *feedback = nullptr );
+
+    /**
+     * Seeds particles over the whole rendered extent, moves them one time step and draws their
+     * traces, sampling the vector field from \a source, which the engine takes ownership of.
+     */
+    void drawTraces( std::unique_ptr<QgsVectorFieldValueSource> source );
 
   private:
     //! Calculates the end point of the arrow based on start point and vector data
@@ -50,8 +86,8 @@ class QgsVectorFieldEngine
       double magnitude //in
     );
 
-    const double mMinMag = 0.0;
-    const double mMaxMag = 0.0;
+    double mMinMag = 0.0;
+    double mMaxMag = 0.0;
 
     QgsRenderContext &mContext;
     const QgsVectorFieldSettings mCfg;
